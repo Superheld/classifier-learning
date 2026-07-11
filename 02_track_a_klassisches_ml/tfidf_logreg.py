@@ -23,6 +23,14 @@ from pathlib import Path
 
 import pandas as pd
 
+# Autoreload: geänderte Module (z.B. data_utils.py) neu laden, ohne Kernel-
+# Neustart. Läuft nur im Jupyter-Kernel; als reines Skript wird es übersprungen.
+try:
+    get_ipython().run_line_magic("load_ext", "autoreload")
+    get_ipython().run_line_magic("autoreload", "2")
+except (NameError, AttributeError):
+    pass
+
 root = Path.cwd()
 while not (root / "data_utils.py").exists() and root != root.parent:
     root = root.parent
