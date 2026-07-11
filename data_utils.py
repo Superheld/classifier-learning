@@ -15,6 +15,7 @@ import json
 import os
 
 import pandas as pd
+from sklearn.model_selection import train_test_split
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), "data", "banking77")
 RESULTS_FILE = os.path.join(os.path.dirname(__file__), "results.json")
@@ -29,6 +30,24 @@ def load_banking77(split="train"):
     path = os.path.join(DATA_DIR, f"{split}.parquet")
     df = pd.read_parquet(path)
     return df["text"].tolist(), df["label_text"].tolist()
+
+
+def load_banking77_split(val_size=0.15, seed=42):
+    """Teilt train.parquet stratifiziert in Trainings- und Validierungsteil.
+
+    Rückgabe: (tr_texts, tr_labels, val_texts, val_labels).
+    Das Testset bleibt unberührt (dafür `load_banking77("test")`).
+
+    Warum das nötig ist (F2): Beim Optimieren vergleicht man Varianten und behält
+    die beste. Täte man das am Testset, hätte man daran „mitoptimiert" und die
+    finale Zahl wäre geschönt. Der Val-Split ist der Vergleichsplatz; der feste
+    Seed macht ihn reproduzierbar.
+    """
+    texts, labels = load_banking77("train")
+    tr_texts, val_texts, tr_labels, val_labels = train_test_split(
+        texts, labels, test_size=val_size, stratify=labels, random_state=seed
+    )
+    return tr_texts, tr_labels, val_texts, val_labels
 
 
 def save_result(name, accuracy, **extra):
