@@ -48,6 +48,32 @@ def plot_rounds(proto_df, title="Optimierungsrunden"):
     plt.show()
 
 
+def plot_confusion_matrix(y_true, y_pred, normalize=True, title="Confusion Matrix"):
+    """Vollständige Confusion-Matrix als Heatmap: Zeile = wahr, Spalte = getippt.
+
+    normalize=True: je Zeile auf 1 normiert (Recall-Verteilung je wahrer Klasse),
+    damit unterschiedlich große Klassen vergleichbar sind. Bei 77 Intents ist die
+    Matrix dicht — die dunkle Diagonale ist gut (richtig), off-diagonale Flecken
+    sind die Verwechslungen. Für die konkreten Paare: plot_top_confusions.
+    """
+    labels = sorted(set(y_true) | set(y_pred))
+    cm = confusion_matrix(y_true, y_pred, labels=labels).astype(float)
+    if normalize:
+        cm = cm / cm.sum(axis=1, keepdims=True).clip(min=1)
+    fig, ax = plt.subplots(figsize=(14, 13))
+    im = ax.imshow(cm, cmap="Blues", vmin=0, vmax=1 if normalize else None)
+    ax.set_xticks(range(len(labels)))
+    ax.set_xticklabels(labels, rotation=90, fontsize=5)
+    ax.set_yticks(range(len(labels)))
+    ax.set_yticklabels(labels, fontsize=5)
+    ax.set_xlabel("getippt (predicted)")
+    ax.set_ylabel("wahr (true)")
+    ax.set_title(title)
+    fig.colorbar(im, ax=ax, fraction=0.046, pad=0.04)
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_top_confusions(y_true, y_pred, top=15, title="Häufigste Verwechslungen"):
     """Horizontaler Balken: die häufigsten Fehl-Paare (wahr → getippt)."""
     labels = sorted(set(y_true) | set(y_pred))

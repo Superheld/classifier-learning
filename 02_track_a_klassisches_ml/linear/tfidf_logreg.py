@@ -32,7 +32,7 @@ except (NameError, AttributeError):
 root = Path.cwd()
 while not (root / "data_utils.py").exists() and root != root.parent:
     root = root.parent
-# Root (geteilte Helfer: data_utils, eval_utils) + Track-A-Ordner (experiment.py
+# Root (geteilte Helfer: data_utils, eval_utils) + Track-A-Ordner (tuning.py
 # liegt track-lokal) auf den Importpfad — egal von wo Zed den Kernel startet.
 for d in (root, root / "02_track_a_klassisches_ml"):
     if str(d) not in sys.path:
@@ -42,7 +42,9 @@ from data_utils import load_banking77, load_banking77_split, save_result
 
 train_texts, train_labels = load_banking77("train")
 test_texts, test_labels = load_banking77("test")
-print(f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}")
+print(
+    f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}"
+)
 
 # %% [markdown]
 # ## Schritt 1 — Text zu Zahlen: TF-IDF
@@ -96,12 +98,17 @@ preds = clf.predict(X_test)
 acc = accuracy_score(test_labels, preds)
 macro_f1 = f1_score(test_labels, preds, average="macro")
 
-print(f"Accuracy : {acc*100:.2f} %")
-print(f"Macro-F1 : {macro_f1*100:.2f} %")
-print(f"Baseline : 1.30 %  ->  Sprung: +{(acc-0.0130)*100:.1f} Prozentpunkte")
+print(f"Accuracy : {acc * 100:.2f} %")
+print(f"Macro-F1 : {macro_f1 * 100:.2f} %")
+print(f"Baseline : 1.30 %  ->  Sprung: +{(acc - 0.0130) * 100:.1f} Prozentpunkte")
 
-save_result("A_plain_tfidf_logreg", acc, macro_f1=round(macro_f1, 4),
-            model="TF-IDF + LogReg", note="P2 plain, keine Optimierung")
+save_result(
+    "A_plain_tfidf_logreg",
+    acc,
+    macro_f1=round(macro_f1, 4),
+    model="TF-IDF + LogReg",
+    note="P2 plain, keine Optimierung",
+)
 
 # %% [markdown]
 # ## Deuten & nächster Schritt
@@ -137,12 +144,12 @@ save_result("A_plain_tfidf_logreg", acc, macro_f1=round(macro_f1, 4),
 # ## Val-Setup
 #
 # Der Optimierungszyklus selbst (auf val messen, eine Änderung, besser →
-# behalten) steckt jetzt zentral in **`experiment.tune()`** — F3, einmal gebaut,
+# behalten) steckt jetzt zentral in **`tuning.tune()`** — F3, einmal gebaut,
 # von jedem Modell genutzt. Hier bleibt nur das Modellspezifische: der Val-Split
 # und gleich die Liste der Experimente.
 
 # %%
-from experiment import tune
+from tuning import tune
 
 tr_texts, tr_labels, val_texts, val_labels = load_banking77_split()
 print(f"Trainingsteil: {len(tr_texts)}   Validierung: {len(val_texts)}")
@@ -171,7 +178,11 @@ experiments = [
 ]
 best_vec, best_clf, proto_df = tune(
     lambda kw: LogisticRegression(max_iter=1000, **kw),
-    experiments, tr_texts, tr_labels, val_texts, val_labels,
+    experiments,
+    tr_texts,
+    tr_labels,
+    val_texts,
+    val_labels,
 )
 
 # %% [markdown]
@@ -181,7 +192,9 @@ best_vec, best_clf, proto_df = tune(
 from eval_utils import plot_rounds
 
 print(proto_df.to_string(index=False))
-print(f"\nBeste Config:  TF-IDF={best_vec or 'Default'}   LogReg={best_clf or 'Default'}")
+print(
+    f"\nBeste Config:  TF-IDF={best_vec or 'Default'}   LogReg={best_clf or 'Default'}"
+)
 print(f"Beste val Macro-F1: {proto_df['val_macroF1'].max():.2f} %")
 
 plot_rounds(proto_df, "LogReg — Optimierungsrunden")
@@ -206,13 +219,20 @@ p = clf.predict(Xte)
 test_acc = accuracy_score(test_labels, p)
 test_f1 = f1_score(test_labels, p, average="macro")
 
-print(f"getunt   test-Accuracy: {test_acc*100:.2f} %   Macro-F1: {test_f1*100:.2f} %")
+print(
+    f"getunt   test-Accuracy: {test_acc * 100:.2f} %   Macro-F1: {test_f1 * 100:.2f} %"
+)
 print(f"plain    test-Accuracy: 87.78 %")
-print(f"Gewinn durch Tuning:    +{(test_acc-0.8778)*100:.2f} Prozentpunkte")
+print(f"Gewinn durch Tuning:    +{(test_acc - 0.8778) * 100:.2f} Prozentpunkte")
 
-save_result("A_tuned_tfidf_logreg", test_acc, macro_f1=round(test_f1, 4),
-            model="TF-IDF + LogReg", config=f"vec={best_vec}, clf={best_clf}",
-            note="P3 getunt, Config auf val gewählt, test 1x gemessen")
+save_result(
+    "A_tuned_tfidf_logreg",
+    test_acc,
+    macro_f1=round(test_f1, 4),
+    model="TF-IDF + LogReg",
+    config=f"vec={best_vec}, clf={best_clf}",
+    note="P3 getunt, Config auf val gewählt, test 1x gemessen",
+)
 
 # %% [markdown]
 # ## Wo irrt das Modell? — Fehlerbilder
@@ -223,8 +243,9 @@ save_result("A_tuned_tfidf_logreg", test_acc, macro_f1=round(test_f1, 4),
 # Verwechsel-Kandidaten vorhergesagt — treffen sie ein?
 
 # %%
-from eval_utils import plot_per_class_f1, plot_top_confusions
+from eval_utils import plot_confusion_matrix, plot_per_class_f1, plot_top_confusions
 
+plot_confusion_matrix(test_labels, p, title="LogReg getunt — Confusion Matrix")
 plot_top_confusions(test_labels, p, top=15)
 plot_per_class_f1(test_labels, p, worst=20)
 

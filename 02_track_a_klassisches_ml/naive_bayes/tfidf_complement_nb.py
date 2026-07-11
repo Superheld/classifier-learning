@@ -39,7 +39,9 @@ from data_utils import load_banking77, load_banking77_split, save_result
 
 train_texts, train_labels = load_banking77("train")
 test_texts, test_labels = load_banking77("test")
-print(f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}")
+print(
+    f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}"
+)
 
 # %% [markdown]
 # ## P2 — pure
@@ -53,11 +55,15 @@ clf = ComplementNB()
 clf.fit(X_train, train_labels)
 preds = clf.predict(X_test)
 acc = accuracy_score(test_labels, preds)
-print(f"ComplementNB pure  Accuracy: {acc*100:.2f} %   (LogReg pure 87.78 %)")
+print(f"ComplementNB pure  Accuracy: {acc * 100:.2f} %   (LogReg pure 87.78 %)")
 
-save_result("A_plain_tfidf_complementnb", acc,
-            macro_f1=round(f1_score(test_labels, preds, average="macro"), 4),
-            model="TF-IDF + ComplementNB", note="P2 plain")
+save_result(
+    "A_plain_tfidf_complementnb",
+    acc,
+    macro_f1=round(f1_score(test_labels, preds, average="macro"), 4),
+    model="TF-IDF + ComplementNB",
+    note="P2 plain",
+)
 
 # %% [markdown]
 # ## P3 — optimieren (auf val)
@@ -65,7 +71,7 @@ save_result("A_plain_tfidf_complementnb", acc,
 # und `norm` (ComplementNBs Gewichts-Normalisierung).
 
 # %%
-from experiment import tune
+from tuning import tune
 
 tr_texts, tr_labels, val_texts, val_labels = load_banking77_split()
 
@@ -79,14 +85,20 @@ experiments = [
 ]
 best_vec, best_clf, proto_df = tune(
     lambda kw: ComplementNB(**kw),
-    experiments, tr_texts, tr_labels, val_texts, val_labels,
+    experiments,
+    tr_texts,
+    tr_labels,
+    val_texts,
+    val_labels,
 )
 
 # %%
-from eval_utils import plot_per_class_f1, plot_rounds, plot_top_confusions
+from eval_utils import plot_confusion_matrix, plot_per_class_f1, plot_rounds, plot_top_confusions
 
 print(proto_df.to_string(index=False))
-print(f"Beste Config:  TF-IDF={best_vec or 'Default'}   ComplementNB={best_clf or 'Default'}")
+print(
+    f"Beste Config:  TF-IDF={best_vec or 'Default'}   ComplementNB={best_clf or 'Default'}"
+)
 plot_rounds(proto_df, "ComplementNB — Optimierungsrunden")
 
 # %% [markdown]
@@ -102,11 +114,19 @@ clf.fit(Xtr, full_labels)
 p = clf.predict(Xte)
 test_acc = accuracy_score(test_labels, p)
 test_f1 = f1_score(test_labels, p, average="macro")
-print(f"ComplementNB getunt  test-Acc: {test_acc*100:.2f} %   Macro-F1: {test_f1*100:.2f} %")
+print(
+    f"ComplementNB getunt  test-Acc: {test_acc * 100:.2f} %   Macro-F1: {test_f1 * 100:.2f} %"
+)
 
-save_result("A_tuned_tfidf_complementnb", test_acc, macro_f1=round(test_f1, 4),
-            model="TF-IDF + ComplementNB", config=f"vec={best_vec}, clf={best_clf}",
-            note="P3 getunt, test 1x")
+save_result(
+    "A_tuned_tfidf_complementnb",
+    test_acc,
+    macro_f1=round(test_f1, 4),
+    model="TF-IDF + ComplementNB",
+    config=f"vec={best_vec}, clf={best_clf}",
+    note="P3 getunt, test 1x",
+)
 
+plot_confusion_matrix(test_labels, p, title="ComplementNB getunt — Confusion Matrix")
 plot_top_confusions(test_labels, p, top=15)
 plot_per_class_f1(test_labels, p, worst=20)

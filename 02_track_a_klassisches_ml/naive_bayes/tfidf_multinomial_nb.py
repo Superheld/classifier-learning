@@ -36,7 +36,9 @@ from data_utils import load_banking77, load_banking77_split, save_result
 
 train_texts, train_labels = load_banking77("train")
 test_texts, test_labels = load_banking77("test")
-print(f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}")
+print(
+    f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}"
+)
 
 # %% [markdown]
 # ## P2 — pure
@@ -50,11 +52,17 @@ clf = MultinomialNB()
 clf.fit(X_train, train_labels)
 preds = clf.predict(X_test)
 acc = accuracy_score(test_labels, preds)
-print(f"MultinomialNB pure  Accuracy: {acc*100:.2f} %   (ComplementNB zum Vergleich!)")
+print(
+    f"MultinomialNB pure  Accuracy: {acc * 100:.2f} %   (ComplementNB zum Vergleich!)"
+)
 
-save_result("A_plain_tfidf_multinomialnb", acc,
-            macro_f1=round(f1_score(test_labels, preds, average="macro"), 4),
-            model="TF-IDF + MultinomialNB", note="P2 plain")
+save_result(
+    "A_plain_tfidf_multinomialnb",
+    acc,
+    macro_f1=round(f1_score(test_labels, preds, average="macro"), 4),
+    model="TF-IDF + MultinomialNB",
+    note="P2 plain",
+)
 
 # %% [markdown]
 # ## P3 — optimieren (auf val)
@@ -62,7 +70,7 @@ save_result("A_plain_tfidf_multinomialnb", acc,
 # oder gleichverteilt annehmen — relevant, weil train unbalanciert ist).
 
 # %%
-from experiment import tune
+from tuning import tune
 
 tr_texts, tr_labels, val_texts, val_labels = load_banking77_split()
 
@@ -76,14 +84,20 @@ experiments = [
 ]
 best_vec, best_clf, proto_df = tune(
     lambda kw: MultinomialNB(**kw),
-    experiments, tr_texts, tr_labels, val_texts, val_labels,
+    experiments,
+    tr_texts,
+    tr_labels,
+    val_texts,
+    val_labels,
 )
 
 # %%
-from eval_utils import plot_per_class_f1, plot_rounds, plot_top_confusions
+from eval_utils import plot_confusion_matrix, plot_per_class_f1, plot_rounds, plot_top_confusions
 
 print(proto_df.to_string(index=False))
-print(f"Beste Config:  TF-IDF={best_vec or 'Default'}   MultinomialNB={best_clf or 'Default'}")
+print(
+    f"Beste Config:  TF-IDF={best_vec or 'Default'}   MultinomialNB={best_clf or 'Default'}"
+)
 plot_rounds(proto_df, "MultinomialNB — Optimierungsrunden")
 
 # %% [markdown]
@@ -99,11 +113,19 @@ clf.fit(Xtr, full_labels)
 p = clf.predict(Xte)
 test_acc = accuracy_score(test_labels, p)
 test_f1 = f1_score(test_labels, p, average="macro")
-print(f"MultinomialNB getunt  test-Acc: {test_acc*100:.2f} %   Macro-F1: {test_f1*100:.2f} %")
+print(
+    f"MultinomialNB getunt  test-Acc: {test_acc * 100:.2f} %   Macro-F1: {test_f1 * 100:.2f} %"
+)
 
-save_result("A_tuned_tfidf_multinomialnb", test_acc, macro_f1=round(test_f1, 4),
-            model="TF-IDF + MultinomialNB", config=f"vec={best_vec}, clf={best_clf}",
-            note="P3 getunt, test 1x")
+save_result(
+    "A_tuned_tfidf_multinomialnb",
+    test_acc,
+    macro_f1=round(test_f1, 4),
+    model="TF-IDF + MultinomialNB",
+    config=f"vec={best_vec}, clf={best_clf}",
+    note="P3 getunt, test 1x",
+)
 
+plot_confusion_matrix(test_labels, p, title="MultinomialNB getunt — Confusion Matrix")
 plot_top_confusions(test_labels, p, top=15)
 plot_per_class_f1(test_labels, p, worst=20)

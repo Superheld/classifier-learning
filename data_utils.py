@@ -60,6 +60,11 @@ def save_result(name, accuracy, **extra):
         with open(RESULTS_FILE, encoding="utf-8") as f:
             results = json.load(f)
     results[name] = {"accuracy": round(accuracy, 4), **extra}
+    # Als Rangliste speichern (beste Accuracy oben) — so ist auf einen Blick
+    # vergleichbar, welcher Ansatz vorn liegt.
+    results = dict(
+        sorted(results.items(), key=lambda kv: kv[1]["accuracy"], reverse=True)
+    )
     with open(RESULTS_FILE, "w", encoding="utf-8") as f:
         json.dump(results, f, indent=2, ensure_ascii=False)
     print(f"\n[gespeichert] {name}: accuracy={accuracy:.4f} -> results.json")

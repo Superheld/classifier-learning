@@ -60,7 +60,7 @@ REPL (Cmd+Enter je Zelle). Kein `.ipynb` — bessere Git-Diffs.
 
 Gen-1-Befund: lineare Sippe (~88–90 %) schlägt Naive Bayes klar; getunter
 LogReg führt. Fundament: **F1 (EDA)** ✅ · **F2 (Val-Split)** ✅ ·
-**F3 (Optimierungszyklus** `experiment.tune()`**)** ✅ · F4 offen.
+**F3 (Optimierungszyklus** `tuning.tune()`**)** ✅ · F4 offen.
 Referenz-Obergrenze auf banking77 (BERT): ~93–94 %.
 
 ## Setup
