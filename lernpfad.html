@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lernprojekt Textklassifikation — Übersicht</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1c2333; --muted:#5b657a;
+    --line:#e4e8f0; --ok:#16a34a; --open:#94a3b8; --half:#d97706;
+    --a:#2563eb; --b:#7c3aed; --c:#dc2626; --d:#0d9488;
+    --fund:#475569; --syn:#b45309;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{font-family:-apple-system,'Segoe UI',Roboto,sans-serif; background:var(--bg); color:var(--ink); line-height:1.5; padding:32px 20px 60px;}
+  .wrap{max-width:1100px; margin:0 auto;}
+  h1{font-size:1.7rem; margin-bottom:4px;}
+  .sub{color:var(--muted); margin-bottom:20px;}
+  h2{font-size:1.15rem; margin:34px 0 14px; display:flex; align-items:center; gap:8px;}
+  h2 .tag{font-size:.7rem; font-weight:600; padding:2px 8px; border-radius:99px; background:var(--line); color:var(--muted); letter-spacing:.05em;}
+
+  /* Progress header */
+  .progress{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 20px; display:flex; gap:26px; flex-wrap:wrap; align-items:center;}
+  .stat b{font-size:1.25rem;}
+  .stat span{display:block; font-size:.75rem; color:var(--muted);}
+  .bar{flex:1; min-width:180px; height:10px; background:var(--line); border-radius:99px; overflow:hidden;}
+  .bar i{display:block; height:100%; width:34%; background:linear-gradient(90deg,var(--ok),#4ade80); border-radius:99px;}
+  .next{font-size:.85rem; background:#fef9c3; border:1px solid #fde68a; padding:6px 12px; border-radius:10px;}
+
+  /* Cards grid */
+  .grid{display:grid; gap:14px;}
+  .g4{grid-template-columns:repeat(auto-fit,minmax(230px,1fr));}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(430px,1fr));}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:14px; padding:16px 18px;}
+  .card h3{font-size:.98rem; margin-bottom:6px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .card p{font-size:.84rem; color:var(--muted);}
+  .badge{font-size:.66rem; font-weight:700; padding:2px 8px; border-radius:99px; color:#fff; letter-spacing:.04em;}
+  .st{margin-left:auto; font-size:.72rem; font-weight:600; padding:2px 9px; border-radius:99px;}
+  .st.ok{background:#dcfce7; color:var(--ok);} .st.open{background:#f1f5f9; color:var(--open);} .st.half{background:#fef3c7; color:var(--half);}
+
+  /* Track cards */
+  .track{border-top:4px solid var(--line);}
+  .track.A{border-top-color:var(--a);} .track.B{border-top-color:var(--b);}
+  .track.C{border-top-color:var(--c);} .track.D{border-top-color:var(--d);}
+  .fach{font-size:.74rem; color:var(--muted); font-style:italic; margin-bottom:8px;}
+  .chips{display:flex; flex-wrap:wrap; gap:5px; margin:8px 0 10px;}
+  .chip{font-size:.72rem; padding:3px 9px; border-radius:99px; background:var(--bg); border:1px solid var(--line);}
+  .chip.main{font-weight:700; border-style:solid;}
+  .A .chip.main{border-color:var(--a); color:var(--a);} .B .chip.main{border-color:var(--b); color:var(--b);}
+  .C .chip.main{border-color:var(--c); color:var(--c);} .D .chip.main{border-color:var(--d); color:var(--d);}
+  .phasen{display:grid; grid-template-columns:repeat(4,1fr); gap:6px; margin:10px 0;}
+  .ph{font-size:.7rem; text-align:center; padding:7px 4px; border-radius:9px; background:var(--bg); border:1px solid var(--line);}
+  .ph b{display:block; font-size:.75rem;}
+  .ph.ok{background:#dcfce7; border-color:#bbf7d0;} .ph.half{background:#fef3c7; border-color:#fde68a;}
+  .zahl{font-size:.82rem; margin-top:4px;}
+  .zahl b{font-size:1.05rem;}
+  .schwaeche{font-size:.78rem; color:var(--muted); border-left:3px solid var(--line); padding-left:9px; margin-top:9px;}
+
+  /* Etappen timeline */
+  .etappen{display:flex; flex-wrap:wrap; gap:8px;}
+  .et{background:var(--card); border:1px solid var(--line); border-radius:11px; padding:9px 12px; font-size:.78rem; min-width:150px; flex:1;}
+  .et b{display:block; font-size:.82rem;}
+  .et small{color:var(--muted);}
+  .et.done{border-color:#bbf7d0; background:#f0fdf4;}
+  .et.part{border-color:#fde68a; background:#fffbeb;}
+  .et.kuer{border-style:dashed; opacity:.85;}
+  .legende{font-size:.75rem; color:var(--muted); margin-top:10px;}
+  .dot{display:inline-block; width:9px; height:9px; border-radius:99px; margin:0 3px 0 10px;}
+
+  /* Stränge */
+  .strang{display:flex; gap:10px; align-items:baseline;}
+  .strang b{white-space:nowrap;}
+
+  .files{font-size:.85rem; color:var(--muted);}
+  .files code{background:var(--card); border:1px solid var(--line); padding:1px 7px; border-radius:7px; font-size:.8rem;}
+  footer{margin-top:36px; font-size:.75rem; color:var(--muted); text-align:center;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Textklassifikation — von TF-IDF bis LLM</h1>
+  <p class="sub">Lernprojekt am Datensatz <b>10kGNAD</b> · 10.273 deutsche Nachrichtenartikel · 9 Rubriken</p>
+
+  <div class="progress">
+    <div class="stat"><b>16,3&nbsp;%</b><span>Baseline (Latte)</span></div>
+    <div class="stat"><b>85,2&nbsp;%</b><span>Track A · TF-IDF+LogReg</span></div>
+    <div class="stat"><b>85,0&nbsp;%</b><span>Track B · Embeddings</span></div>
+    <div class="stat"><b>~90&nbsp;%</b><span>Ziel Track C (erwartet)</span></div>
+    <div class="bar" title="ca. 1/3 des Kern-Pfads"><i></i></div>
+    <div class="next">▶ <b>Nächster Schritt:</b> E0 abschließen — EDA, Val-Split, Experiment-Log</div>
+  </div>
+
+  <h2>Fundament <span class="tag">GILT FÜR ALLE TRACKS</span></h2>
+  <div class="grid g4">
+    <div class="card"><h3>F1 · Daten &amp; EDA <span class="st half">◐ EDA offen</span></h3>
+      <p>Die Daten kennen, bevor ein Modell sie sieht: Verteilungen, Längen, Duplikate, Leakage-Check. Dazu die Baseline: 16,3&nbsp;%.</p></div>
+    <div class="card"><h3>F2 · Messwesen <span class="st half">◐ Val-Split offen</span></h3>
+      <p>Confusion Matrix, Precision/Recall/F1, Macro vs. Weighted — und das Drei-Sets-Prinzip train/validation/test.</p></div>
+    <div class="card"><h3>F3 · Experimentieren <span class="st half">◐ Setup offen</span></h3>
+      <p>Seeds, Experiment-Tracking, Config-Disziplin + der 8-Schritte-Optimierungszyklus (läuft in jedem P3).</p></div>
+    <div class="card"><h3>F4 · Theorie-Werkzeuge <span class="st open">⬜</span></h3>
+      <p>Bias/Variance-Diagnose, Learning Curves, Loss &amp; Learning Rate, Kalibrierung — das Erklär-Besteck.</p></div>
+  </div>
+
+  <h2>Die vier Strategie-Tracks <span class="tag">P1 VORBEREITEN → P2 BAUEN → P3 OPTIMIEREN ⟳ → P4 EINORDNEN</span></h2>
+  <div class="grid g2">
+
+    <div class="card track A">
+      <h3><span class="badge" style="background:var(--a)">TRACK A · GEN 1</span> Klassisches ML <span class="st half">◐ P3 offen</span></h3>
+      <div class="fach">Fachbegriff: classical / traditional ML</div>
+      <div class="chips">
+        <span class="chip main">Logistische Regression</span><span class="chip main">Naive Bayes</span>
+        <span class="chip">LinearSVC / SVM</span><span class="chip">Random Forest*</span><span class="chip">XGBoost*</span>
+        <span class="chip">Features: TF-IDF · Counts · n-Gramme</span>
+      </div>
+      <div class="phasen">
+        <div class="ph ok"><b>P1 ✓</b>TF-IDF</div><div class="ph ok"><b>P2 ✓</b>85,2 %</div>
+        <div class="ph"><b>P3 ⟳</b>0 Runden</div><div class="ph half"><b>P4 ◐</b>Einordnen</div>
+      </div>
+      <p class="zahl">Stand: <b>85,2 %</b> · Ziel nach P3: ~87–88 % · Stellschrauben: n-Gramme, class_weight, C, LinearSVC, Kalibrierung, GridSearchCV</p>
+      <p class="schwaeche">Schwäche → Track B: kennt keine Bedeutung — „Bundesliga" und „Kicker" sind fremde Wörter. <i>(*Bäume nur bei Mischfeatures)</i></p>
+    </div>
+
+    <div class="card track B">
+      <h3><span class="badge" style="background:var(--b)">TRACK B · GEN 2</span> Embeddings <span class="st half">◐ P3 offen</span></h3>
+      <div class="fach">Fachbegriff: feature extraction (frozen embeddings + classifier)</div>
+      <div class="chips">
+        <span class="chip main">sentence-transformers</span><span class="chip main">+ LogReg-Kopf</span>
+        <span class="chip">MiniLM / E5 / GTE</span><span class="chip">kNN · SVM als Kopf</span>
+        <span class="chip">SetFit (Brücke zu C)</span><span class="chip">Embedding-APIs</span>
+      </div>
+      <div class="phasen">
+        <div class="ph ok"><b>P1 ✓</b>Encoding</div><div class="ph ok"><b>P2 ✓</b>85,0 %</div>
+        <div class="ph"><b>P3 ⟳</b>0 Runden</div><div class="ph half"><b>P4 ◐</b>Einordnen</div>
+      </div>
+      <p class="zahl">Stand: <b>85,0 %</b> (naiv 82,5 % — Kontextfenster!) · Stärke: wenig Daten (+21 Punkte bei n=200) · Stellschrauben: Encoder-Wahl, Chunking, Kopf, Few-Shot-Kurve, SetFit</p>
+      <p class="schwaeche">Schwäche → Track C: der Encoder bleibt eingefroren, passt sich der Aufgabe nicht an.</p>
+    </div>
+
+    <div class="card track C">
+      <h3><span class="badge" style="background:var(--c)">TRACK C · GEN 3a</span> Finetuning <span class="st open">⬜ nächster Track</span></h3>
+      <div class="fach">Fachbegriff: fine-tuning (pretrained transformer)</div>
+      <div class="chips">
+        <span class="chip main">deepset/gbert-base</span>
+        <span class="chip">RoBERTa · DeBERTa</span><span class="chip">DistilBERT · ALBERT</span>
+        <span class="chip">XLM-R (multilingual)</span><span class="chip">BioBERT … (Domänen)</span>
+        <span class="chip">Longformer (lange Texte)</span><span class="chip">LoRA / PEFT</span>
+      </div>
+      <div class="phasen">
+        <div class="ph"><b>P1</b>Tokenizer</div><div class="ph"><b>P2</b>~90 % erw.</div>
+        <div class="ph"><b>P3 ⟳</b>LR, Epochen</div><div class="ph"><b>P4</b>Einordnen</div>
+      </div>
+      <p class="zahl">Erwartung: <b>~90–91 %</b> (Bestwert) · braucht GPU/mps · Stellschrauben: Learning Rate + Warmup, Early Stopping, max_length, Freezing/LoRA, Modellwahl</p>
+      <p class="schwaeche">Schwäche → Track D: viele Labels + GPU nötig; jede Kategorie-Änderung = neu trainieren.</p>
+    </div>
+
+    <div class="card track D">
+      <h3><span class="badge" style="background:var(--d)">TRACK D · GEN 3b</span> LLM per Prompt <span class="st open">⬜</span></h3>
+      <div class="fach">Fachbegriff: zero-/few-shot prompting · Rolle: Gegenprobe zu C</div>
+      <div class="chips">
+        <span class="chip main">Claude Haiku</span><span class="chip">Claude Sonnet</span>
+        <span class="chip">jedes Instruct-LLM</span><span class="chip">strukturierter JSON-Output</span>
+      </div>
+      <div class="phasen">
+        <div class="ph"><b>P1</b>Prompt-Design</div><div class="ph"><b>P2</b>85–92 % erw.</div>
+        <div class="ph"><b>P3 ⟳</b>Prompt-Iteration</div><div class="ph"><b>P4</b>Einordnen</div>
+      </div>
+      <p class="zahl">Erwartung: <b>85–92 %</b> ohne ein Trainingsbeispiel · Stellschrauben: Kategoriedefinitionen, Few-Shot-Auswahl, Grenzfall-Regeln, Modellwahl, Selbstkonsistenz</p>
+      <p class="schwaeche">Schwäche → Kombinationen (E8/S2): laufende Kosten &amp; Latenz bei großem Volumen.</p>
+    </div>
+  </div>
+
+  <h2>Der Lernpfad <span class="tag">12 ETAPPEN = DIE GESCHICHTE DES FACHS</span></h2>
+  <div class="etappen">
+    <div class="et part"><b>E0 Fundament</b><small>F1–F4 · ◐ EDA/Val-Split offen</small></div>
+    <div class="et"><b>E1 Regeln</b><small>Keyword-Classifier · 2 Std.</small></div>
+    <div class="et part"><b>E2 Klassik = Track A</b><small>◐ P3-Runden offen</small></div>
+    <div class="et kuer"><b>E3 Word2Vec/fastText</b><small>Kür · ½–1 Tag</small></div>
+    <div class="et kuer"><b>E4 Museum CNN/LSTM</b><small>Kür · 1–2 Tage</small></div>
+    <div class="et part"><b>E5 Embeddings = Track B</b><small>◐ P3 + SetFit offen</small></div>
+    <div class="et"><b>E6 Finetuning = Track C</b><small>1–2 Tage · GPU</small></div>
+    <div class="et"><b>E7 LLM = Track D</b><small>1 Tag · API-Key</small></div>
+    <div class="et"><b>E8 Kombinationen</b><small>Ensemble · Destillation</small></div>
+    <div class="et"><b>E9 Vergleich (S1)</b><small>Macro-F1 · Signifikanz</small></div>
+    <div class="et"><b>E10 Mini-App (S2)</b><small>Kaskade · Streamlit</small></div>
+    <div class="et kuer"><b>E11 Ausblick</b><small>Multi-Label · MLOps …</small></div>
+  </div>
+  <p class="legende">
+    <span class="dot" style="background:#4ade80"></span> erledigt
+    <span class="dot" style="background:#fbbf24"></span> teilweise
+    <span class="dot" style="background:#cbd5e1"></span> offen ·
+    gestrichelt = Kür (nichts hängt davon ab)
+  </p>
+
+  <h2>Die drei Querschnitts-Stränge <span class="tag">IN JEDER ETAPPE GEÜBT</span></h2>
+  <div class="grid g4">
+    <div class="card"><div class="strang"><b>🔍 Daten-Handwerk</b></div>
+      <p>EDA · Cleaning · Labeling &amp; Kappa · Imbalance · Augmentation · Data-centric AI</p></div>
+    <div class="card"><div class="strang"><b>🧪 Experimentier-Handwerk</b></div>
+      <p>Seeds · Tracking (CSV→MLflow) · Config · Grid→Optuna · Ablation · Daten-/Modell-Tests</p></div>
+    <div class="card"><div class="strang"><b>📐 Theorie-Werkzeuge</b></div>
+      <p>Bias/Variance · Learning Curves · Loss &amp; LR · Kalibrierung · Signifikanz (McNemar) · XAI</p></div>
+  </div>
+
+  <h2>Dokumente &amp; Ordner</h2>
+  <p class="files">
+    <code>ROADMAP.md</code> Architektur, Tracks im Detail, Lernpfad &nbsp;·&nbsp;
+    <code>MODELL-LANDKARTE.md</code> alle 7 Familien &amp; 5 Varianten-Achsen &nbsp;·&nbsp;
+    <code>KONZEPTE.md</code> Handwerks-Handbuch (~20 Konzepte mit Übungen) &nbsp;·&nbsp;
+    <code>gnad_utils.py</code> gemeinsame Helfer &nbsp;·&nbsp;
+    <code>results.json</code> Sammelblatt &nbsp;·&nbsp;
+    Ordner <code>stufe0…7/</code> = Arbeitsverzeichnisse der Einheiten
+  </p>
+
+  <footer>Stand: Juli 2026 · Diese Seite ist die Übersicht — Details und Checkpoints stehen in den Markdown-Dokumenten.</footer>
+</div>
+</body>
+</html>

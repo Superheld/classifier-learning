@@ -1,0 +1,19 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Generierte / regenerierbare Artefakte
+# Embedding-Caches (via Track B neu erzeugbar)
+*.npy
+# trainierte sklearn-Modelle
+*.joblib
+# generierte Ergebnis-Sammlung
+results.json
+
+# Nebendatensaetze (nicht Kern; via data/support/download_*.py holbar)
+data/support/*/
+
+# macOS / Editor
+.DS_Store
+.zed/

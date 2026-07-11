@@ -1,0 +1,11 @@
+scikit-learn>=1.3
+pandas>=2.0
+matplotlib>=3.7
+sentence-transformers>=2.7
+anthropic>=0.34
+# Optional, je Etappe (bei Bedarf einkommentieren):
+# fasttext-wheel     # E3
+# torch, transformers, datasets, accelerate  # E4/E6 (Track C)
+# setfit             # B·P3
+# mlflow, optuna     # C·P3 (Experiment-Tracking-/Tuning-Upgrade)
+# cleanlab, shap     # E11 / Vertiefungen
