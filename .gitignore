@@ -8,8 +8,6 @@ __pycache__/
 *.npy
 # trainierte sklearn-Modelle
 *.joblib
-# generierte Ergebnis-Sammlung
-results.json
 
 # Nebendatensaetze (nicht Kern; via data/support/download_*.py holbar)
 data/support/*/

@@ -1,6 +1,6 @@
 # KONZEPTE.md — Das Handwerks-Handbuch
 
-**Zweck:** Die ROADMAP sagt *wann*, dieses Handbuch sagt *was und wie*. Jedes
+**Zweck:** Das CURRICULUM sagt *wann*, dieses Handbuch sagt *was und wie*. Jedes
 Konzept der drei Querschnitts-Stränge: Was es ist · warum es zählt · eine
 konkrete Übung am 10kGNAD · wo es im Lernpfad lebt · Quelle. So tief, wie es
 moderne Kurse (Made With ML, fast.ai, Google ML Crash Course, Ng) lehren.

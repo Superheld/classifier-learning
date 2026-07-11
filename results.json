@@ -1,0 +1,67 @@
+{
+  "A_tuned_tfidf_logreg": {
+    "accuracy": 0.9025,
+    "macro_f1": 0.9025,
+    "model": "TF-IDF + LogReg",
+    "config": "vec={'min_df': 2, 'sublinear_tf': True}, clf={'C': 10, 'class_weight': 'balanced'}",
+    "note": "P3 getunt, Config auf val gewählt, test 1x gemessen"
+  },
+  "A_tuned_tfidf_linsvc": {
+    "accuracy": 0.895,
+    "macro_f1": 0.8951,
+    "model": "TF-IDF + LinearSVC",
+    "config": "vec={'min_df': 2}, clf={}",
+    "note": "P3 getunt, Config auf val gewählt, test 1x gemessen"
+  },
+  "A_plain_tfidf_linsvc": {
+    "accuracy": 0.8947,
+    "macro_f1": 0.8945,
+    "model": "TF-IDF + LinearSVC",
+    "note": "P2 plain, keine Optimierung"
+  },
+  "A_tuned_tfidf_sgd": {
+    "accuracy": 0.8895,
+    "macro_f1": 0.8893,
+    "model": "TF-IDF + SGD",
+    "config": "vec={'ngram_range': (1, 2), 'min_df': 2}, clf={}",
+    "note": "P3 getunt, test 1x"
+  },
+  "A_plain_tfidf_sgd": {
+    "accuracy": 0.8823,
+    "macro_f1": 0.8815,
+    "model": "TF-IDF + SGD",
+    "note": "P2 plain"
+  },
+  "A_plain_tfidf_logreg": {
+    "accuracy": 0.8778,
+    "macro_f1": 0.8777,
+    "model": "TF-IDF + LogReg",
+    "note": "P2 plain, keine Optimierung"
+  },
+  "A_tuned_tfidf_multinomialnb": {
+    "accuracy": 0.8703,
+    "macro_f1": 0.8699,
+    "model": "TF-IDF + MultinomialNB",
+    "config": "vec={'min_df': 2, 'sublinear_tf': True}, clf={'alpha': 0.1, 'fit_prior': False}",
+    "note": "P3 getunt, test 1x"
+  },
+  "A_tuned_tfidf_complementnb": {
+    "accuracy": 0.7988,
+    "macro_f1": 0.7931,
+    "model": "TF-IDF + ComplementNB",
+    "config": "vec={'ngram_range': (1, 2), 'sublinear_tf': True}, clf={'norm': True}",
+    "note": "P3 getunt, test 1x"
+  },
+  "A_plain_tfidf_multinomialnb": {
+    "accuracy": 0.7877,
+    "macro_f1": 0.7721,
+    "model": "TF-IDF + MultinomialNB",
+    "note": "P2 plain"
+  },
+  "A_plain_tfidf_complementnb": {
+    "accuracy": 0.7006,
+    "macro_f1": 0.6886,
+    "model": "TF-IDF + ComplementNB",
+    "note": "P2 plain"
+  }
+}
