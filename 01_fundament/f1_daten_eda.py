@@ -92,15 +92,15 @@ plt.show()
 # - Folge für die **Majority-Baseline**: Sie tippt immer den häufigsten
 #   train-Intent. Weil test gleichverteilt ist, trifft das nur ~1/77 ≈ **1,3 %**.
 #   Die Latte liegt also sehr niedrig — 77 Klassen sind schwer.
-# - Weil test balanciert ist, sind **Accuracy** und **Macro-F1** hier näher
-#   beieinander als bei GNAD. Trotzdem messen wir später beides (F2).
+# - Weil test balanciert ist, liegen **Accuracy** und **Macro-F1** hier näher
+#   beieinander. Trotzdem messen wir später beides (F2).
 
 # %% [markdown]
 # ## 2. Textlängen
 #
 # Wie lang sind die Anfragen — in Wörtern und Zeichen? Das entscheidet mit,
-# welche Modelle passen: Bei GNAD waren 97 % der Artikel länger als 128 Tokens
-# (Track-B-Problem). Hier erwarten wir das Gegenteil — kurze Sätze.
+# welche Modelle passen: sehr kurze Texte geben TF-IDF wenig Signal pro Beispiel,
+# während Embeddings/Transformer damit gut zurechtkommen.
 
 # %%
 lengths = pd.DataFrame({
@@ -129,9 +129,9 @@ print(by_intent.tail(5))
 
 # %% [markdown]
 # ### Deuten
-# - **Kurz-Text-Regime**: wenige Wörter pro Anfrage. Das dreht die Karten
-#   gegenüber GNAD — Embeddings (Track B) haben kein Kontextfenster-Problem, und
-#   TF-IDF (Track A) hat pro Beispiel *weniger* Signal.
+# - **Kurz-Text-Regime**: wenige Wörter pro Anfrage. Für Track B heißt das kein
+#   Kontextfenster-Problem (alles passt locker rein); für Track A (TF-IDF) heißt
+#   es *weniger* Signal pro Beispiel.
 # - Ausreißer nach oben (max Zeichen) lohnt sich anzuschauen — Copy-Paste,
 #   mehrere Fragen in einer? (In Abschnitt 6 prüfen wir Artefakte.)
 
@@ -334,7 +334,7 @@ print(f"(Zufall bei 77 gleichverteilten Klassen: {100/77:.2f} %)")
 # ## Fazit F1
 #
 # Was uns die EDA *vor* jedem Modell gesagt hat:
-# - **77 Intents, kurze Texte** → Intent-Klassifikation, anderes Regime als GNAD.
+# - **77 Intents, kurze Texte** → Intent-Klassifikation (kurze Kundenanfragen).
 # - **train unbalanciert, test balanciert** → Baseline extrem niedrig (~1,3 %),
 #   Accuracy und Macro-F1 nah beieinander.
 # - **Vokabular** ist domänen-typisch (card/transfer/payment); manche Intents
