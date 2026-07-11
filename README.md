@@ -51,11 +51,16 @@ REPL (Cmd+Enter je Zelle). Kein `.ipynb` — bessere Git-Diffs.
 | Ansatz | pure | getunt |
 |---|---|---|
 | Majority-Baseline | 1,30 % | — |
-| **A** · TF-IDF + LogReg | 87,78 % | **90,25 %** |
-| **A** · TF-IDF + LinearSVC | 89,47 % | offen |
+| **A** · linear · LogReg | 87,78 % | **90,25 %** |
+| **A** · linear · LinearSVC | 89,47 % | 89,50 % |
+| **A** · linear · SGD | 88,23 % | 88,95 % |
+| **A** · naive_bayes · MultinomialNB | 78,77 % | 87,03 % |
+| **A** · naive_bayes · ComplementNB | 70,06 % | 79,88 % |
 | **B/C/D** | offen | offen |
 
-Fundament: **F1 (EDA)** ✅ · **F2 (Val-Split)** ✅ · F3/F4 offen.
+Gen-1-Befund: lineare Sippe (~88–90 %) schlägt Naive Bayes klar; getunter
+LogReg führt. Fundament: **F1 (EDA)** ✅ · **F2 (Val-Split)** ✅ ·
+**F3 (Optimierungszyklus** `experiment.tune()`**)** ✅ · F4 offen.
 Referenz-Obergrenze auf banking77 (BERT): ~93–94 %.
 
 ## Setup
