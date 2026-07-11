@@ -21,9 +21,6 @@
 import sys
 from pathlib import Path
 
-import matplotlib.pyplot as plt
-import pandas as pd
-
 # Autoreload: geänderte Module (z.B. data_utils.py) neu laden, ohne Kernel-
 # Neustart. Läuft nur im Jupyter-Kernel; als reines Skript wird es übersprungen.
 try:
@@ -111,79 +108,43 @@ save_result("A_plain_tfidf_linsvc", acc, macro_f1=round(macro_f1, 4),
 # Klassifikator ist LinearSVC — mal sehen, ob dieselben Knöpfe gleich wirken.
 
 # %%
+from experiment import tune
+
 tr_texts, tr_labels, val_texts, val_labels = load_banking77_split()
 print(f"Trainingsteil: {len(tr_texts)}   Validierung: {len(val_texts)}")
 
-
-def run(vec_kwargs, clf_kwargs):
-    """Fittet auf tr_, misst auf val_. Rückgabe: (val_accuracy, val_macro_f1)."""
-    vec = TfidfVectorizer(**vec_kwargs)
-    Xtr = vec.fit_transform(tr_texts)
-    Xval = vec.transform(val_texts)
-    clf = LinearSVC(dual="auto", max_iter=5000, **clf_kwargs)
-    clf.fit(Xtr, tr_labels)
-    pr = clf.predict(Xval)
-    return accuracy_score(val_labels, pr), f1_score(val_labels, pr, average="macro")
-
-
-protocol = []
-best_vec, best_clf = {}, {}
-
-acc0, f1_0 = run(best_vec, best_clf)
-best_f1 = f1_0
-protocol.append({"schritt": "Start (Default)", "val_macroF1": round(f1_0 * 100, 2),
-                 "val_acc": round(acc0 * 100, 2), "behalten": "—"})
-print(f"Ist-Stand auf val:  Macro-F1 {f1_0*100:.2f} %   Acc {acc0*100:.2f} %")
-
-
-def consider(label, vec_change=None, clf_change=None):
-    """Testet EINE Änderung auf dem bisher Besten, behält sie nur wenn besser."""
-    global best_vec, best_clf, best_f1
-    cand_vec = {**best_vec, **(vec_change or {})}
-    cand_clf = {**best_clf, **(clf_change or {})}
-    acc, f1 = run(cand_vec, cand_clf)
-    better = f1 > best_f1
-    print(f"{label:<24} val Macro-F1 {f1*100:5.2f} %  "
-          f"(bisher best {best_f1*100:.2f} %)  -> {'BEHALTEN' if better else 'verworfen'}")
-    protocol.append({"schritt": label, "val_macroF1": round(f1 * 100, 2),
-                     "val_acc": round(acc * 100, 2),
-                     "behalten": "ja" if better else "nein"})
-    if better:
-        best_vec, best_clf, best_f1 = cand_vec, cand_clf, f1
-
 # %% [markdown]
-# ## Die Runden
+# ## Die Experimente
 # Gleiche Feature-Knöpfe wie beim LogReg (Bigramme, `min_df`, `sublinear_tf`),
 # dann `C` und Klassengewichte. Bei LinearSVC liegt der `C`-Sweet-Spot oft
 # *anders* als bei LogReg — genau deshalb messen wir statt zu raten.
 
 # %%
-consider("Bigramme (1,2)", vec_change={"ngram_range": (1, 2)})
-consider("min_df=2", vec_change={"min_df": 2})
-consider("sublinear_tf", vec_change={"sublinear_tf": True})
-for c in [0.3, 3, 10]:   # 1 = aktueller Default
-    consider(f"C={c}", clf_change={"C": c})
-consider("class_weight=balanced", clf_change={"class_weight": "balanced"})
+experiments = [
+    ("Bigramme (1,2)", {"ngram_range": (1, 2)}, None),
+    ("min_df=2", {"min_df": 2}, None),
+    ("sublinear_tf", {"sublinear_tf": True}, None),
+    ("C=0.3", None, {"C": 0.3}),
+    ("C=3", None, {"C": 3}),
+    ("C=10", None, {"C": 10}),
+    ("class_weight=balanced", None, {"class_weight": "balanced"}),
+]
+best_vec, best_clf, proto_df = tune(
+    lambda kw: LinearSVC(dual="auto", max_iter=5000, **kw),
+    experiments, tr_texts, tr_labels, val_texts, val_labels,
+)
 
 # %% [markdown]
 # ## Rundenprotokoll & Best-Config
 
 # %%
-proto_df = pd.DataFrame(protocol)
+from eval_utils import plot_rounds
+
 print(proto_df.to_string(index=False))
 print(f"\nBeste Config:  TF-IDF={best_vec or 'Default'}   LinearSVC={best_clf or 'Default'}")
-print(f"Beste val Macro-F1: {best_f1*100:.2f} %")
+print(f"Beste val Macro-F1: {proto_df['val_macroF1'].max():.2f} %")
 
-fig, ax = plt.subplots(figsize=(9, 4))
-colors = {"ja": "#3D9970", "nein": "#E8684A", "—": "#AAAAAA"}
-ax.bar(proto_df["schritt"], proto_df["val_macroF1"],
-       color=[colors[b] for b in proto_df["behalten"]])
-ax.set_ylabel("val Macro-F1 (%)")
-ax.set_ylim(proto_df["val_macroF1"].min() - 3, proto_df["val_macroF1"].max() + 1)
-ax.set_title("LinearSVC — Optimierungsrunden (grün behalten · rot verworfen)")
-plt.xticks(rotation=45, ha="right")
-plt.tight_layout()
-plt.show()
+plot_rounds(proto_df, "LinearSVC — Optimierungsrunden")
 
 # %% [markdown]
 # ## Finale Messung — Testset, genau EINMAL

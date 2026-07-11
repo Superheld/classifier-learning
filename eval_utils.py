@@ -34,6 +34,20 @@ def plot_per_class_f1(y_true, y_pred, worst=None, title="F1 je Intent"):
     plt.show()
 
 
+def plot_rounds(proto_df, title="Optimierungsrunden"):
+    """Balken der val-Macro-F1 je Runde. Grün = behalten, rot = verworfen, grau = Start."""
+    colors = {"ja": "#3D9970", "nein": "#E8684A", "—": "#AAAAAA"}
+    fig, ax = plt.subplots(figsize=(9, 4))
+    ax.bar(proto_df["schritt"], proto_df["val_macroF1"],
+           color=[colors[b] for b in proto_df["behalten"]])
+    ax.set_ylabel("val Macro-F1 (%)")
+    ax.set_ylim(proto_df["val_macroF1"].min() - 3, proto_df["val_macroF1"].max() + 1)
+    ax.set_title(f"{title} (grün behalten · rot verworfen)")
+    plt.xticks(rotation=45, ha="right")
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_top_confusions(y_true, y_pred, top=15, title="Häufigste Verwechslungen"):
     """Horizontaler Balken: die häufigsten Fehl-Paare (wahr → getippt)."""
     labels = sorted(set(y_true) | set(y_pred))
