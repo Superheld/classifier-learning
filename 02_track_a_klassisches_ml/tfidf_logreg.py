@@ -21,6 +21,7 @@
 import sys
 from pathlib import Path
 
+import matplotlib.pyplot as plt
 import pandas as pd
 
 # Autoreload: geänderte Module (z.B. data_utils.py) neu laden, ohne Kernel-
@@ -230,9 +231,23 @@ consider("class_weight=balanced", clf_change={"class_weight": "balanced"})
 # ## Rundenprotokoll & Best-Config
 
 # %%
-print(pd.DataFrame(protocol).to_string(index=False))
+proto_df = pd.DataFrame(protocol)
+print(proto_df.to_string(index=False))
 print(f"\nBeste Config gefunden:  TF-IDF={best_vec or 'Default'}   LogReg={best_clf or 'Default'}")
 print(f"Beste val Macro-F1:     {best_f1*100:.2f} %")
+
+# %%
+# Die Runden als Bild: grün = behalten, rot = verworfen, grau = Startpunkt.
+colors = {"ja": "#3D9970", "nein": "#E8684A", "—": "#AAAAAA"}
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.bar(proto_df["schritt"], proto_df["val_macroF1"],
+       color=[colors[b] for b in proto_df["behalten"]])
+ax.set_ylabel("val Macro-F1 (%)")
+ax.set_ylim(proto_df["val_macroF1"].min() - 3, proto_df["val_macroF1"].max() + 1)
+ax.set_title("Optimierungsrunden (grün behalten · rot verworfen)")
+plt.xticks(rotation=45, ha="right")
+plt.tight_layout()
+plt.show()
 
 # %% [markdown]
 # ## Finale Messung — Testset, genau EINMAL
@@ -261,6 +276,20 @@ print(f"Gewinn durch Tuning:    +{(test_acc-0.8778)*100:.2f} Prozentpunkte")
 save_result("A_tuned_tfidf_logreg", test_acc, macro_f1=round(test_f1, 4),
             model="TF-IDF + LogReg", config=f"vec={best_vec}, clf={best_clf}",
             note="P3 getunt, Config auf val gewählt, test 1x gemessen")
+
+# %% [markdown]
+# ## Wo irrt das Modell? — Fehlerbilder
+#
+# Zwei Blicke auf die getunten Test-Vorhersagen. Die **Verwechslungen** sind der
+# Reality-Check zur F1-EDA: dort hatten wir per Wort-Überlappung Paare wie
+# `card_payment_not_recognised ↔ direct_debit_payment_not_recognised` als
+# Verwechsel-Kandidaten vorhergesagt — treffen sie ein?
+
+# %%
+from eval_utils import plot_per_class_f1, plot_top_confusions
+
+plot_top_confusions(test_labels, p, top=15)
+plot_per_class_f1(test_labels, p, worst=20)
 
 # %% [markdown]
 # ## Deuten
