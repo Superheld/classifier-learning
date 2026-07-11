@@ -14,12 +14,15 @@ import numpy as np
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "cache")
 
 
-def encode(model_name, texts, cache_key, split):
+def encode(model_name, texts, cache_key, split, prefix=""):
     """Text-Liste → Embedding-Matrix (N × dim), gecacht.
 
     model_name : HF-Name des Encoders, z.B. "sentence-transformers/all-MiniLM-L6-v2"
     cache_key  : kurzer Name für die Cache-Datei, z.B. "minilm"
     split      : "train" / "test" (getrennte Cache-Dateien)
+    prefix     : manche Encoder wollen einen Präfix vor jedem Text. E5 z.B.
+                 erwartet "query: " — ohne ihn liefert E5 schlechtere Vektoren.
+                 MiniLM/mpnet brauchen keinen (prefix="").
 
     normalize_embeddings=True (Einheitslänge) — gut für LogReg und Cosinus-kNN.
     """
@@ -32,6 +35,8 @@ def encode(model_name, texts, cache_key, split):
     import torch
     from sentence_transformers import SentenceTransformer
 
+    if prefix:
+        texts = [prefix + t for t in texts]
     device = "mps" if torch.backends.mps.is_available() else "cpu"
     print(f"[compute] {model_name} / {split} auf {device} …")
     model = SentenceTransformer(model_name, device=device)
