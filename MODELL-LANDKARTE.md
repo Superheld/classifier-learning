@@ -1,6 +1,6 @@
 # Die vollständige Modell-Landkarte der Textklassifikation
 
-**Zweck dieses Dokuments:** Die ROADMAP lehrt bewusst *Familien* (vier Tracks),
+**Zweck dieses Dokuments:** Das CURRICULUM lehrt bewusst *Familien* (vier Tracks),
 nicht einzelne Modelle. Dieses Dokument zeigt das **komplette Feld** — jede
 Familie, jede Variante, jede Kombination — damit sichtbar ist: Es wird nichts
 versteckt, und die scheinbar „vielen Möglichkeiten" aus Blogartikeln und

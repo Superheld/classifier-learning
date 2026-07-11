@@ -11,7 +11,7 @@ Intent-Klassifikation (Customer Service). Liegt in `data/banking77/`, geladen
 
 ## Struktur
 
-Ordner = Kapitel. Das Curriculum steht in **`ROADMAP.md`** (CRISP-DM als Prozess,
+Ordner = Kapitel. Das Curriculum steht in **`CURRICULUM.md`** (CRISP-DM als Prozess,
 vier Strategie-Tracks über drei „Generationen" der Modelle).
 
 | Ordner | Inhalt |
@@ -70,7 +70,7 @@ Empfohlener Einstieg: `01_fundament/f1_daten_eda.py`.
 
 ## Weitere Doku
 
-- **`ROADMAP.md`** — das Curriculum (datensatz-unabhängig, wiederverwendbar).
+- **`CURRICULUM.md`** — das Curriculum (datensatz-unabhängig, wiederverwendbar).
 - `MODELL-LANDKARTE.md`, `KONZEPTE.md` — Nachschlagewerke (teils noch aus der
   Vorgänger-Phase, werden nachgezogen).
 - `results.json` — Ergebnis-Sammlung (generiert, via `data_utils.save_result`).

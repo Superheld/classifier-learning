@@ -1,10 +1,22 @@
-# Lern-Roadmap: Textklassifikation
+# CURRICULUM — Lernprojekt Textklassifikation
 
-Das Curriculum — **datensatzunabhängig und wiederverwendbar**. Alles
-Projektspezifische (Datensatz, Messwerte, Status, nächste Schritte) steht in
-**`PROJEKT.md`**. Nachschlagewerke: **`MODELL-LANDKARTE.md`** (alle
-Modellfamilien), **`KONZEPTE.md`** (Handwerks-Handbuch). Dashboard:
-**`lernpfad.html`**.
+**Ein reines Lernprojekt.** Es gibt kein Ziel-Artefakt — keine App, kein
+„fertiger Classifier". Das Ziel ist Können:
+
+**Die vier Lernziele**
+
+1. **Jedes Konzept gesehen haben** — alle Modellfamilien, alle
+   Handwerks-Konzepte (EDA bis Signifikanz), alle Theorie-Werkzeuge.
+2. **Alles selbst ausprobiert haben** — jede Familie mindestens einmal
+   gebaut, optimiert (P3!) und eingeordnet; ehrlich gemessen.
+3. **An verschiedenen Datensätzen geübt haben** — was nur an einem
+   Datensatz klappt, ist nicht gelernt (→ Datensatz-Rotation, Kap. 9).
+4. **Transfer:** Bei jedem künftigen Klassifikations-Problem schnell und
+   begründet zum passenden Ansatz kommen. Das ist der eigentliche Ertrag.
+
+Deliverables wie die Mini-App sind **Übungen** (dort: für Deployment),
+keine Ziele. Nachschlagewerke: `MODELL-LANDKARTE.md` (alle Familien) ·
+`KONZEPTE.md` (Handwerk) · Projektstand & aktueller Datensatz: `README.md`.
 
 ---
 
@@ -183,10 +195,23 @@ ist, entscheidet die Fehleranalyse.
 |---|---|
 | Fachbegriff | classical / traditional ML |
 | Wissensquelle | deine gelabelten Daten |
-| Modelle | **Logistische Regression** · Naive Bayes · LinearSVC/SVM · (Bäume: RF, XGBoost — nur bei Text+Zusatzfeatures) |
+| Modelle | siehe Modell-Menü unten |
 | Features | Counts · TF-IDF · Wort-/Zeichen-n-Gramme |
 | Werkzeug | scikit-learn |
 | Quellen | SLP3 Kap. 4 + Anhang B; scikit-learn „Working with Text Data" |
+
+**Das Modell-Menü.** Auf hochdimensionalen, spärlichen TF-IDF-Features gilt
+die Faustregel: **linear gewinnt** — der Rest kostet meist Zeit und Punkte:
+
+| Klassifikator | Modellfamilie | auf TF-IDF-Text | probieren? |
+|---|---|---|---|
+| **Logistische Regression** | linear, probabilistisch | stark; liefert Wahrscheinlichkeiten (→ Kalibrierung, Kaskade) | ✅ Standard |
+| **LinearSVC** | linear, Margin-basiert | oft 1–2 Punkte stärker; keine Wahrscheinlichkeiten | ✅ Standard |
+| SGDClassifier | linear, gradient-trainiert | ~gleichwertig; skaliert auf Riesen-Daten; viele Loss-/Penalty-Optionen | bei sehr großen Daten |
+| MultinomialNB | Naive Bayes | der Lehrbuch-Textklassifikator; blitzschnelle Baseline; mag rohe Counts | ✅ als Baseline |
+| **ComplementNB** | Naive Bayes | die NB-Variante für **unbalancierte** Klassen — oft besser als MultinomialNB | ✅ bei Klassen-Unwucht |
+| kNN | abstandsbasiert | funktioniert (Cosinus), aber langsam und mittelmäßig bei vielen Klassen | Lehr-Experiment |
+| RandomForest / XGBoost / LightGBM | Baum-Ensembles | auf spärlichem Text meist schwächer als linear und langsamer; stark erst bei Text **+ Zusatzfeatures** | nur bei Mischfeatures |
 
 **P1 Vorbereiten:** Tokenisierung → Vokabular → TF-IDF-Gewichtung →
 Sparse-Vektoren. ⚠️ Vectorizer nur auf train fitten (sonst Leakage).
@@ -223,9 +248,19 @@ fremde Wörter.
 |---|---|
 | Fachbegriff | feature extraction (frozen embeddings + classifier) |
 | Wissensquelle | Sprachverständnis: vortrainiertes Modell · Kategorien: deine Daten |
-| Modelle | Encoder (sentence-transformers: MiniLM/E5/GTE u. a.; Embedding-APIs) × Kopf (**LogReg** · kNN · SVM) · **SetFit** |
+| Modelle | siehe Modell-Menü unten (Encoder × Kopf) |
 | Werkzeug | sentence-transformers, scikit-learn |
 | Quellen | SLP3 Kap. 5; sbert.net; SetFit-Doku |
+
+**Das Modell-Menü.** Zwei unabhängige Entscheidungen — Encoder und Kopf:
+
+| Baustein | Optionen | Einschätzung | probieren? |
+|---|---|---|---|
+| Encoder klein | MiniLM-Familie (z. B. `all-MiniLM`, `paraphrase-multilingual-MiniLM`) | schnell, guter Start; ⚠️ kurzes Kontextfenster | ✅ Start |
+| Encoder stark | **E5 / GTE / BGE-Familien**, größere SBERT-Modelle | mehr Kontext + Dimension; Retrieval-optimiert — führen die Embedding-Leaderboards (MTEB) | ✅ P3 |
+| Encoder API | OpenAI / Cohere / Voyage Embeddings | stark, kein Setup; laufende Kosten, Daten gehen raus | optional |
+| Kopf | **LogReg** · LinearSVC · **kNN (Cosinus)** · kleines MLP | LogReg Standard; kNN glänzt bei vielen Klassen × wenig Beispielen pro Klasse | ✅ LogReg, dann vergleichen |
+| Nachschärfen | **SetFit** (kontrastives Finetuning des Encoders mit wenigen Labels) | oft +3–8 Punkte im Low-Data-Regime; Brücke zu Track C | ✅ Königsdisziplin |
 
 **P1 Vorbereiten:** Text → Bedeutungsvektor. ⚠️ **Kontextfenster**
 (`max_seq_length`) prüfen — lange Texte brauchen Chunking (stückeln +
@@ -264,9 +299,22 @@ Stärke im Low-Data-Regime.
 |---|---|
 | Fachbegriff | fine-tuning (pretrained transformer) |
 | Wissensquelle | vortrainiertes Netz, komplett an die Aufgabe angepasst |
-| Modelle | BERT-Familie über die 5 Achsen: RoBERTa/DeBERTa (Optimierung) · DistilBERT/ALBERT (Kompression) · XLM-R & sprachspezifische BERTs · Domänen-BERTs · Longformer (lange Texte) · LoRA/PEFT |
+| Modelle | siehe Modell-Menü unten |
 | Werkzeug | Hugging Face transformers · **GPU nötig** |
 | Quellen | HF NLP Course „Fine-tuning"; `MODELL-LANDKARTE.md` Teil 2 |
+
+**Das Modell-Menü** (alles Encoder-Transformer; Auswahl über die 5 Achsen):
+
+| Modell | Achse | Einschätzung | probieren? |
+|---|---|---|---|
+| BERT-base | Referenz | der Klassiker; heute selten erste Wahl | Lehr-Referenz |
+| **RoBERTa / DeBERTa-v3** | besser vortrainiert | Standard-Empfehlung für Maximal-Accuracy | ✅ |
+| **DistilBERT / MiniLM** | Kompression | ~97 % der Leistung, ~40 % schneller — Produktions-Favorit | ✅ Vergleichslauf |
+| **ModernBERT** | Neuauflage (2024) | schneller + langes Kontextfenster; der moderne Default | ✅ wenn verfügbar |
+| XLM-R · sprachspezifische BERTs (gbert, camembert …) | Sprache | nach Datensprache wählen; multilingual kostet meist etwas Accuracy | je nach Datensatz |
+| BioBERT / FinBERT / LegalBERT … | Domäne | nur bei echten Fachtexten spürbar | nur bei Fachdomäne |
+| Longformer / BigBird | Kontextlänge | nur wenn Dokumente wirklich lang sind | bei Langtext |
+| + **LoRA/PEFT** | Trainings-Sparmodus | Standard bei knapper GPU; minimaler Qualitätsverlust | ✅ als P3-Übung |
 
 **P1 Vorbereiten:** Subword-Tokenisierung (modelleigener Tokenizer),
 `max_length` bewusst wählen, Padding/Batches, Klassifikations-Head.
@@ -304,10 +352,19 @@ Kategorie-Änderung = neu trainieren.
 |---|---|
 | Fachbegriff | zero-/few-shot prompting |
 | Wissensquelle | Sprach- & Weltwissen: LLM · Kategorien: deine *Beschreibung* |
-| Modelle | Claude Haiku (billig/schnell) · Claude Sonnet (stärker) · jedes Instruct-LLM |
+| Modelle | siehe Modell-Menü unten |
 | Werkzeug | LLM-API + strukturierter JSON-Output |
 | Quellen | Anthropic Classification-Guide; HF LLM Course |
 | Rolle | Gegenprobe zum Finetuning: War der Aufwand es wert? (Wer streng „Baseline zuerst" lernen will: D vor C — beide Reihenfolgen gehen.) |
+
+**Das Modell-Menü:**
+
+| Modell | Einschätzung | probieren? |
+|---|---|---|
+| **kleines LLM** (Claude Haiku o. ä.) | billig, schnell; für Klassifikation meist ausreichend | ✅ Standard |
+| mittleres LLM (Claude Sonnet o. ä.) | besser bei Grenzfällen + Begründungen; Kostenkurve messen! | ✅ Vergleichslauf |
+| offenes LLM lokal (via Ollama) | offline/Datenschutz; schwächer, aber ohne API-Kosten | optional |
+| feingetuntes kleines LLM | Spezialfall — wenn man hier landet, ist meist Track C die bessere Antwort | Einordnung kennen |
 
 **P1 Vorbereiten — „Data Prep ist Prompt-Design":** Kategoriedefinitionen
 schreiben (das eigentliche „Training"!), JSON-Output erzwingen,
@@ -356,6 +413,9 @@ nur das Stellrad ist anders.*
 
 ### S2 — Mini-App: Hybrid-Classifier (Deployment)
 
+*Lernübung für Deployment — kein Projektziel. Wer S2 weglässt, hat trotzdem
+alle vier Lernziele erreichbar; wer sie baut, lernt den Betriebs-Aspekt.*
+
 - **Kaskade:** billiger Track (A/B, **kalibrierte** Konfidenz) entscheidet
   klare Fälle; unsichere gehen ans LLM (D) mit Begründung.
 - Anzeige: Kategorie · Konfidenz · Entscheidungsweg · Begründung.
@@ -371,6 +431,16 @@ nur das Stellrad ist anders.*
 **Reihenfolge = Geschichte des Fachs**: Jede Etappe behebt die Schwäche der
 vorherigen. Kern baut aufeinander auf; Kür vertieft, ohne dass Späteres
 davon abhängt.
+
+**Datensatz-Rotation (Lernziel 3):** Konzepte an mindestens zwei
+*kontrastierenden* Datensätzen üben — z. B. Intent-Klassifikation (kurze
+Sätze, sehr viele Klassen: banking77) und Themen-Klassifikation (lange
+Artikel, wenige Klassen: 10kGNAD o. ä.). Der Kontrast ist selbst Lernstoff:
+Bei Langtext tut das Kontextfenster weh, bei 77 Intents die Klassenzahl und
+das Few-Shot-Regime; kNN-Köpfe und ComplementNB verhalten sich je nach
+Datensatz völlig anders. **Was an beiden funktioniert, ist verstanden.**
+Praktisch: erster Durchlauf komplett an einem Datensatz; danach gezielte
+Wiederholung einzelner Etappen (mind. E0, E2, E5, E7) am Kontrast-Datensatz.
 
 | # | Etappe | Familie | Art | Aufwand | Kern-Übung |
 |---|---|---|---|---|---|

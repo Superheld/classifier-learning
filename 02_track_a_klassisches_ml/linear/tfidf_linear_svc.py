@@ -32,8 +32,11 @@ except (NameError, AttributeError):
 root = Path.cwd()
 while not (root / "data_utils.py").exists() and root != root.parent:
     root = root.parent
-if str(root) not in sys.path:
-    sys.path.insert(0, str(root))
+# Root (geteilte Helfer: data_utils, eval_utils) + Track-A-Ordner (experiment.py
+# liegt track-lokal) auf den Importpfad — egal von wo Zed den Kernel startet.
+for d in (root, root / "02_track_a_klassisches_ml"):
+    if str(d) not in sys.path:
+        sys.path.insert(0, str(d))
 
 from data_utils import load_banking77, load_banking77_split, save_result
 
