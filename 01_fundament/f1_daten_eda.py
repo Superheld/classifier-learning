@@ -34,9 +34,10 @@ while not (root / "data_utils.py").exists() and root != root.parent:
 if str(root) not in sys.path:
     sys.path.insert(0, str(root))
 
-import pandas as pd
-import matplotlib.pyplot as plt
 from collections import Counter
+
+import matplotlib.pyplot as plt
+import pandas as pd
 
 from data_utils import load_banking77
 
@@ -58,10 +59,16 @@ print(peek.to_string(index=False))
 # der Split *stratifiziert* (dieselbe Verteilung in train und test)?
 
 # %%
-dist = pd.DataFrame({
-    "train": pd.Series(train_labels).value_counts(),
-    "test":  pd.Series(test_labels).value_counts(),
-}).fillna(0).astype(int)
+dist = (
+    pd.DataFrame(
+        {
+            "train": pd.Series(train_labels).value_counts(),
+            "test": pd.Series(test_labels).value_counts(),
+        }
+    )
+    .fillna(0)
+    .astype(int)
+)
 dist["train_%"] = (dist["train"] / dist["train"].sum() * 100).round(2)
 
 print(f"Intents: {dist.shape[0]}")
@@ -70,15 +77,18 @@ print(dist.sort_values("train", ascending=False).head(5))
 print("\n--- 5 kleinste Intents (train) ---")
 print(dist.sort_values("train", ascending=True).head(5))
 
-print(f"\ntrain je Intent:  min {dist['train'].min()}  "
-      f"median {int(dist['train'].median())}  max {dist['train'].max()}")
-print(f"test  je Intent:  min {dist['test'].min()}  "
-      f"median {int(dist['test'].median())}  max {dist['test'].max()}")
+print(
+    f"\ntrain je Intent:  min {dist['train'].min()}  "
+    f"median {int(dist['train'].median())}  max {dist['train'].max()}"
+)
+print(
+    f"test  je Intent:  min {dist['test'].min()}  "
+    f"median {int(dist['test'].median())}  max {dist['test'].max()}"
+)
 
 # %%
 # Verteilung als Balken (nach train-Größe sortiert)
-ax = dist.sort_values("train")[["train", "test"]].plot.barh(
-    figsize=(8, 14), width=0.85)
+ax = dist.sort_values("train")[["train", "test"]].plot.barh(figsize=(8, 14), width=0.85)
 ax.set_title("banking77 — Beispiele je Intent (train vs. test)")
 ax.set_xlabel("Anzahl Beispiele")
 plt.tight_layout()
@@ -103,13 +113,20 @@ plt.show()
 # während Embeddings/Transformer damit gut zurechtkommen.
 
 # %%
-lengths = pd.DataFrame({
-    "intent": train_labels,
-    "n_words": [len(t.split()) for t in train_texts],
-    "n_chars": [len(t) for t in train_texts],
-})
-print("Wörter je Anfrage:", lengths["n_words"].describe()[["min", "50%", "max"]].to_dict())
-print("Zeichen je Anfrage:", lengths["n_chars"].describe()[["min", "50%", "max"]].to_dict())
+lengths = pd.DataFrame(
+    {
+        "intent": train_labels,
+        "n_words": [len(t.split()) for t in train_texts],
+        "n_chars": [len(t) for t in train_texts],
+    }
+)
+print(
+    "Wörter je Anfrage:", lengths["n_words"].describe()[["min", "50%", "max"]].to_dict()
+)
+print(
+    "Zeichen je Anfrage:",
+    lengths["n_chars"].describe()[["min", "50%", "max"]].to_dict(),
+)
 
 fig, axes = plt.subplots(1, 2, figsize=(11, 4))
 lengths["n_words"].plot.hist(bins=40, ax=axes[0], title="Länge in Wörtern")
@@ -145,11 +162,14 @@ print(by_intent.tail(5))
 
 # %%
 import re
+
 from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
+
 
 def tokenize(text):
     """Kleinschreibung, Wörter aus Buchstaben (Zahlen/Satzzeichen fallen weg)."""
     return re.findall(r"[a-z]+", text.lower())
+
 
 all_tokens = [tok for t in train_texts for tok in tokenize(t)]
 vocab = Counter(all_tokens)
@@ -158,7 +178,9 @@ content = Counter(tok for tok in all_tokens if tok not in ENGLISH_STOP_WORDS)
 print(f"Tokens gesamt: {len(all_tokens):,}")
 print(f"Vokabulargröße (verschiedene Wörter): {len(vocab):,}")
 hapax = sum(1 for w, c in vocab.items() if c == 1)
-print(f"Einmal-Wörter (Hapax): {hapax:,}  ({hapax/len(vocab)*100:.0f} % des Vokabulars)")
+print(
+    f"Einmal-Wörter (Hapax): {hapax:,}  ({hapax / len(vocab) * 100:.0f} % des Vokabulars)"
+)
 
 print("\n--- Top 15 ROH (mit Füllwörtern) ---")
 for w, c in vocab.most_common(15):
@@ -187,13 +209,21 @@ texts_by_intent = {}
 for t, l in zip(train_texts, train_labels):
     texts_by_intent.setdefault(l, []).append(t)
 
+
 def top_words(texts, k=8):
-    c = Counter(tok for t in texts for tok in tokenize(t)
-                if tok not in ENGLISH_STOP_WORDS)
+    c = Counter(
+        tok for t in texts for tok in tokenize(t) if tok not in ENGLISH_STOP_WORDS
+    )
     return [w for w, _ in c.most_common(k)]
 
-for intent in ["card_arrival", "atm_support", "lost_or_stolen_card",
-               "exchange_rate", "top_up_by_bank_transfer_charge"]:
+
+for intent in [
+    "card_arrival",
+    "atm_support",
+    "lost_or_stolen_card",
+    "exchange_rate",
+    "top_up_by_bank_transfer_charge",
+]:
     print(f"{intent:<32} {', '.join(top_words(texts_by_intent[intent]))}")
 
 # %% [markdown]
@@ -217,8 +247,9 @@ test_norm = [t.strip().lower() for t in test_texts]
 dups_train = sum(c - 1 for c in Counter(train_norm).values() if c > 1)
 overlap = set(train_norm) & set(test_norm)
 
-print(f"Exakte Duplikate innerhalb train: {dups_train} "
-      f"(von {len(train_texts)} Anfragen)")
+print(
+    f"Exakte Duplikate innerhalb train: {dups_train} (von {len(train_texts)} Anfragen)"
+)
 print(f"train-Anfragen, die wortgleich im test stehen (Leakage): {len(overlap)}")
 if overlap:
     print("\nBeispiele für Overlap:")
@@ -271,8 +302,9 @@ if non_ascii:
 # Modell später am ehesten **verwechselt**. Datengetriebene Vorahnung.
 
 # %%
-top_sets = {intent: set(top_words(texts, k=15))
-            for intent, texts in texts_by_intent.items()}
+top_sets = {
+    intent: set(top_words(texts, k=15)) for intent, texts in texts_by_intent.items()
+}
 intents = list(top_sets)
 
 pairs = []
@@ -325,10 +357,10 @@ for intent in ["card_arrival", "lost_or_stolen_card", "exchange_rate"]:
 from sklearn.dummy import DummyClassifier
 
 dummy = DummyClassifier(strategy="most_frequent")
-dummy.fit(train_texts, train_labels)          # „lernt" nur die häufigste Klasse
+dummy.fit(train_texts, train_labels)  # „lernt" nur die häufigste Klasse
 acc = dummy.score(test_texts, test_labels)
-print(f"Majority-Baseline auf test: {acc*100:.2f} %")
-print(f"(Zufall bei 77 gleichverteilten Klassen: {100/77:.2f} %)")
+print(f"Majority-Baseline auf test: {acc * 100:.2f} %")
+print(f"(Zufall bei 77 gleichverteilten Klassen: {100 / 77:.2f} %)")
 
 # %% [markdown]
 # ## Fazit F1
