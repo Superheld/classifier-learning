@@ -1,4 +1,22 @@
 {
+  "B_mpnet_tuned": {
+    "accuracy": 0.9412,
+    "macro_f1": 0.9411,
+    "model": "mpnet + LinearSVC",
+    "note": "P3 Kopf-Zyklus (val-getunt), test 1x"
+  },
+  "B_mpnet_logreg": {
+    "accuracy": 0.9223,
+    "macro_f1": 0.9222,
+    "model": "mpnet + LogReg",
+    "note": "P3 staerkerer Encoder, frozen"
+  },
+  "B_minilm_logreg": {
+    "accuracy": 0.9083,
+    "macro_f1": 0.9082,
+    "model": "MiniLM + LogReg",
+    "note": "P2 plain, frozen embeddings"
+  },
   "A_tuned_tfidf_logreg": {
     "accuracy": 0.9025,
     "macro_f1": 0.9025,
@@ -37,6 +55,12 @@
     "macro_f1": 0.8777,
     "model": "TF-IDF + LogReg",
     "note": "P2 plain, keine Optimierung"
+  },
+  "B_e5_logreg": {
+    "accuracy": 0.8706,
+    "macro_f1": 0.8642,
+    "model": "E5-base + LogReg",
+    "note": "P3 retrieval-Encoder (query:-Praefix), frozen"
   },
   "A_tuned_tfidf_multinomialnb": {
     "accuracy": 0.8703,

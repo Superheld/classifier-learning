@@ -1,55 +1,43 @@
 """
-Experiment-Werkzeug (F3 „Experiment-Setup") — der Optimierungszyklus, zentral.
-
-`tune()` fährt den greedy Zyklus: erst Default auf val messen, dann je Experiment
-GENAU EINE Änderung; besser (an val Macro-F1) → behalten, sonst verwerfen. Das
-Testset wird hier NIE angefasst — die finale test-Messung bleibt im Modell-Notebook.
-
-So bleibt in jeder Modell-Datei nur das Modellspezifische sichtbar: welcher
-Klassifikator, welche Knöpfe (Experimente). Der Loop selbst ist einmal gebaut.
+TF-IDF-Kopf-Tuning (Track A). Baut je Config eine TF-IDF-Matrix + Klassifikator
+und lässt den generischen Greedy-Kern (`optimization.greedy_search`) darauf laufen.
+Track A behält so seine vec/clf-Aufteilung nach außen; der Loop selbst lebt im Root
+und wird von Track B (Embeddings) genauso genutzt.
 """
 
-import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import accuracy_score, f1_score
 
+from optimization import greedy_search
+
+# Welche Config-Schlüssel gehören zum Vectorizer (Rest geht an den Klassifikator).
+_VEC_PARAMS = set(TfidfVectorizer().get_params())
+
 
 def tune(make_clf, experiments, tr_texts, tr_labels, val_texts, val_labels):
-    """Greedy-Optimierung auf dem Val-Split.
+    """Greedy-Optimierung auf dem Val-Split (TF-IDF + Kopf).
 
     make_clf:    Funktion clf_kwargs(dict) -> fertiger Klassifikator.
     experiments: Liste von (label, vec_change|None, clf_change|None) — je eine
                  Änderung gegenüber dem bisher Besten.
-    Rückgabe:    (best_vec_kwargs, best_clf_kwargs, protocol_df).
+    Rückgabe:    (best_vec_kwargs, best_clf_kwargs, protocol_df) — wie gehabt.
     """
 
-    def run(vec_kwargs, clf_kwargs):
-        vec = TfidfVectorizer(**vec_kwargs)
+    def evaluate(cfg):
+        vec_kw = {k: v for k, v in cfg.items() if k in _VEC_PARAMS}
+        clf_kw = {k: v for k, v in cfg.items() if k not in _VEC_PARAMS}
+        vec = TfidfVectorizer(**vec_kw)
         Xtr = vec.fit_transform(tr_texts)
         Xval = vec.transform(val_texts)
-        clf = make_clf(clf_kwargs)
+        clf = make_clf(clf_kw)
         clf.fit(Xtr, tr_labels)
         pr = clf.predict(Xval)
         return accuracy_score(val_labels, pr), f1_score(val_labels, pr, average="macro")
 
-    best_vec, best_clf = {}, {}
-    acc0, f1_0 = run(best_vec, best_clf)
-    best_f1 = f1_0
-    protocol = [{"schritt": "Start (Default)", "val_macroF1": round(f1_0 * 100, 2),
-                 "val_acc": round(acc0 * 100, 2), "behalten": "—"}]
-    print(f"Start auf val:  Macro-F1 {f1_0 * 100:.2f} %   Acc {acc0 * 100:.2f} %")
+    # (label, vec_change, clf_change) → (label, flaches delta); vec/clf-Keys kollidieren nicht
+    flat = [(label, {**(vc or {}), **(cc or {})}) for label, vc, cc in experiments]
+    best, proto = greedy_search(evaluate, flat)
 
-    for label, vec_change, clf_change in experiments:
-        cand_vec = {**best_vec, **(vec_change or {})}
-        cand_clf = {**best_clf, **(clf_change or {})}
-        acc, f1 = run(cand_vec, cand_clf)
-        better = f1 > best_f1
-        print(f"{label:<24} val Macro-F1 {f1 * 100:5.2f} %  "
-              f"(best {best_f1 * 100:.2f} %)  -> {'BEHALTEN' if better else 'verworfen'}")
-        protocol.append({"schritt": label, "val_macroF1": round(f1 * 100, 2),
-                         "val_acc": round(acc * 100, 2),
-                         "behalten": "ja" if better else "nein"})
-        if better:
-            best_vec, best_clf, best_f1 = cand_vec, cand_clf, f1
-
-    return best_vec, best_clf, pd.DataFrame(protocol)
+    best_vec = {k: v for k, v in best.items() if k in _VEC_PARAMS}
+    best_clf = {k: v for k, v in best.items() if k not in _VEC_PARAMS}
+    return best_vec, best_clf, proto

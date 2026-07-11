@@ -56,11 +56,15 @@ REPL (Cmd+Enter je Zelle). Kein `.ipynb` — bessere Git-Diffs.
 | **A** · linear · SGD | 88,23 % | 88,95 % |
 | **A** · naive_bayes · MultinomialNB | 78,77 % | 87,03 % |
 | **A** · naive_bayes · ComplementNB | 70,06 % | 79,88 % |
-| **B/C/D** | offen | offen |
+| **B** · klein · MiniLM + LogReg | 90,83 % | — |
+| **B** · stark · mpnet + Kopf | 92,23 % | **94,12 %** |
+| **B** · stark · E5 + LogReg | 87,06 % | — |
+| **C/D** | offen | offen |
 
-Gen-1-Befund: lineare Sippe (~88–90 %) schlägt Naive Bayes klar; getunter
-LogReg führt. Fundament: **F1 (EDA)** ✅ · **F2 (Val-Split)** ✅ ·
-**F3 (Optimierungszyklus** `tuning.tune()`**)** ✅ · F4 offen.
+Gen-1-Befund: lineare Sippe (~88–90 %) schlägt Naive Bayes; getunter LogReg führt Track A.
+Gen-2-Befund: eingefrorene Embeddings **schlagen Gen 1** — mpnet + LinearSVC (Kopf-Zyklus)
+**94,12 %**, am BERT-Dach *ohne* Finetuning. E5 (MTEB-Leader) fiel durch: stärker ≠ besser.
+Fundament: **F1** ✅ · **F2** ✅ · **F3 (`optimization.greedy_search`)** ✅ · F4 offen.
 Referenz-Obergrenze auf banking77 (BERT): ~93–94 %.
 
 ## Setup
@@ -76,6 +80,6 @@ Empfohlener Einstieg: `01_fundament/f1_daten_eda.py`.
 ## Weitere Doku
 
 - **`CURRICULUM.md`** — das Curriculum (datensatz-unabhängig, wiederverwendbar).
-- `MODELL-LANDKARTE.md`, `KONZEPTE.md` — Nachschlagewerke (teils noch aus der
+- `KONZEPTE.md` — Handwerks-Handbuch (teils noch aus der
   Vorgänger-Phase, werden nachgezogen).
 - `results.json` — Ergebnis-Sammlung (generiert, via `data_utils.save_result`).
