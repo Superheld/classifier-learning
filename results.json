@@ -1,4 +1,10 @@
 {
+  "B_mpnet_tuned": {
+    "accuracy": 0.9412,
+    "macro_f1": 0.9411,
+    "model": "mpnet + LinearSVC",
+    "note": "P3 Kopf-Zyklus (val-getunt), test 1x"
+  },
   "B_mpnet_logreg": {
     "accuracy": 0.9223,
     "macro_f1": 0.9222,
