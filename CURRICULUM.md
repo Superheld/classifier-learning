@@ -10,13 +10,14 @@
 2. **Alles selbst ausprobiert haben** — jede Familie mindestens einmal
    gebaut, optimiert (P3!) und eingeordnet; ehrlich gemessen.
 3. **An verschiedenen Datensätzen geübt haben** — was nur an einem
-   Datensatz klappt, ist nicht gelernt (→ Datensatz-Rotation, Kap. 9).
+   Datensatz klappt, ist nicht gelernt (→ Datensatz-Rotation, Kap. 10).
 4. **Transfer:** Bei jedem künftigen Klassifikations-Problem schnell und
    begründet zum passenden Ansatz kommen. Das ist der eigentliche Ertrag.
 
 Deliverables wie die Mini-App sind **Übungen** (dort: für Deployment),
-keine Ziele. Nachschlagewerke: `MODELL-LANDKARTE.md` (alle Familien) ·
-`KONZEPTE.md` (Handwerk) · Projektstand & aktueller Datensatz: `README.md`.
+keine Ziele. Die vollständige Modell-Landkarte des Felds ist Teil dieses
+Dokuments (Kap. 2). Handwerks-Handbuch: `KONZEPTE.md` · Projektstand &
+aktueller Datensatz: `README.md`.
 
 ---
 
@@ -73,7 +74,83 @@ Etappe erneut geübt — Details je Konzept in `KONZEPTE.md`):
 
 ---
 
-## 2 · Fundament
+## 2 · Die Modell-Landkarte: 7 Familien × 5 Achsen
+
+**Kernthese:** „Best Models"-Artikel listen 20–30 Modellnamen. Das sind
+keine 30 Wege — es sind **7 Familien × 5 Varianten-Achsen**. Wer beides
+kennt, sortiert jedes neue Modell (auch das von 2027) in fünf Minuten ein.
+
+### Die 7 Familien
+
+Jede Familie beantwortet dieselbe Frage anders: *Wie wird aus Text eine
+Vorhersage?*
+
+| # | Familie | seit | Kernidee | Status heute | im Curriculum |
+|---|---|---|---|---|---|
+| 1 | Regeln & Heuristiken | immer | Keywords, Regex, Wortlisten von Hand | lebt als Vorfilter in Kaskaden | E1 |
+| 2 | Klassisches ML | ~1960er | Hand-Features (TF-IDF) + statistisches Modell | quicklebendig: billig, erklärbar | **Track A** (Kap. 5) |
+| 3 | Statische Wort-Embeddings | 2013 | ein fester Bedeutungsvektor pro Wort (Word2Vec, GloVe, fastText) | Geschichte — außer fastText als Speed-Classifier | E3 (Kür) |
+| 4 | Neuronale Sequenzmodelle | 2014 | Netz liest Wort für Wort (CNN, LSTM, BiLSTM, Attention) | verdrängt vom Transformer | E4 „Museum" (Kür) |
+| 5 | Transformer **finetunen** | 2018 | vortrainiertes Netz **auftauen** und umtrainieren | Accuracy-Spitze | **Track C** (Kap. 7) |
+| 6 | Sentence-Embeddings + Kopf | 2019 | vortrainiertes Netz **einfrieren**, nur seine Vektoren nutzen | Preis-Leistungs-Standard | **Track B** (Kap. 6) |
+| 7 | LLM benutzen | 2020+ | Aufgabe in Sprache beschreiben statt trainieren | flexibelster Ansatz | **Track D** (Kap. 8) |
+
+**Wichtig — die Familien 5, 6 und 7 teilen die Architektur** (alle drei
+nutzen vortrainierte Transformer). Was sie unterscheidet, ist die
+**Eingriffstiefe** am selben Objekt:
+
+| Familie | Eingriff | es ändern sich | Track |
+|---|---|---|---|
+| 6 | **einfrieren** — nur Vektoren abgreifen, kleiner Kopf lernt | nichts am Netz | B |
+| 5 | **auftauen** — das ganze Netz nachtrainieren | die Gewichte | C |
+| 7 | **prompten** — Aufgabe beschreiben | nur der Input | D |
+
+Deshalb sind B und C verschiedene Familien, obwohl beide „Transformer" sind
+— und deshalb ist die 7er-Taxonomie die feinere Zoomstufe der groben
+„drei Generationen" (die B und C/D nur als Gen 2/3 unterscheidet).
+Chronologie-Fußnote: Familie 6 entstand *nach* 5 (SBERT 2019); im
+Curriculum kommt B vor C, weil konzeptionell einfacher. Prompting (7) und
+LLM-Finetuning sind **Geschwister, nicht Stufen** — Finetuning eines LLM
+ist konzeptionell Familie 5 mit größerem Modell.
+
+### Die 5 Varianten-Achsen
+
+Jeder konkrete Modellname ist ein Punkt in diesem Raum — die Achsen sind
+orthogonal und kombinieren frei:
+
+| Achse | Frage | Beispiele |
+|---|---|---|
+| 1 Architektur-Optimierung | besser vortrainiert? | BERT → RoBERTa → DeBERTa → ELECTRA, XLNet |
+| 2 Größe/Kompression | kleiner & schneller? | DistilBERT (97 % Leistung, 60 % Größe), TinyBERT, ALBERT, MiniLM, MobileBERT |
+| 3 Sprache | welche Sprache(n)? | sprachspezifische BERTs (gbert, camembert) · mBERT · XLM-R |
+| 4 Domäne | Fach-Vortraining? | BioBERT, FinBERT, LegalBERT, SciBERT, ClinicalBERT |
+| 5 Kontextlänge | wie lange Texte? | 512 Tokens Standard → Longformer, BigBird, ModernBERT |
+
+### Einsortieren üben — externe Modelllisten auf die Landkarte legen
+
+| taucht in Rankings auf als … | Einsortierung |
+|---|---|
+| SVM, Naive Bayes, LogReg, Random Forest, XGBoost | Familie 2 → Track-A-Menü |
+| Word2Vec, GloVe, fastText | Familie 3 → E3 |
+| CNN, RNN, LSTM, GRU, BiLSTM | Familie 4 → E4 |
+| BERT, RoBERTa, DeBERTa, XLNet, ELECTRA | Familie 5, Achse 1 → Track-C-Menü |
+| DistilBERT, TinyBERT, ALBERT, MobileBERT | Familie 5, Achse 2 → Track-C-Menü |
+| mBERT, XLM-R · BioBERT, FinBERT … · Longformer | Familie 5, Achsen 3/4/5 → Track-C-Menü |
+| SBERT, Universal Sentence Encoder, Embedding-APIs, SetFit | Familie 6 → Track-B-Menü |
+| GPT-x, Claude & Co., Prompt Engineering, In-Context Learning | Familie 7 → Track D |
+| Ensembles, Voting, Stacking | Meta-Familie → E8 |
+| Metriken, Cross-Validation, Tuning, Deployment | keine Modelle — Handwerk: F2/F3/S2 |
+
+### Angrenzende Felder (bewusst außerhalb — je ein eigenes Lernprojekt)
+
+Multi-Label- & hierarchische Klassifikation · Extreme Classification
+(Millionen Labels) · Sequenz-Labeling (NER) · Clustering/Topic Modeling
+(wenn Kategorien erst gefunden werden müssen: LDA, BERTopic) · Multimodal
+(Text+Bild/Audio) · MLOps im Großen (Drift, CI/CD, Active Learning). → E11.
+
+---
+
+## 3 · Fundament
 
 ### F1 — Daten & EDA (+ Baseline)
 
@@ -175,7 +252,7 @@ ein ausgereizter einfacher Track schlägt oft einen naiven großen.
 
 ---
 
-## 3 · Das Track-Schema
+## 4 · Das Track-Schema
 
 | Phase | Frage | Charakter |
 |---|---|---|
@@ -189,7 +266,7 @@ ist, entscheidet die Fehleranalyse.
 
 ---
 
-## 4 · Track A — Klassisches ML
+## 5 · Track A — Klassisches ML
 
 | Steckbrief | |
 |---|---|
@@ -242,7 +319,7 @@ fremde Wörter.
 
 ---
 
-## 5 · Track B — Embeddings
+## 6 · Track B — Embeddings
 
 | Steckbrief | |
 |---|---|
@@ -293,7 +370,7 @@ Stärke im Low-Data-Regime.
 
 ---
 
-## 6 · Track C — Finetuning
+## 7 · Track C — Finetuning
 
 | Steckbrief | |
 |---|---|
@@ -301,7 +378,7 @@ Stärke im Low-Data-Regime.
 | Wissensquelle | vortrainiertes Netz, komplett an die Aufgabe angepasst |
 | Modelle | siehe Modell-Menü unten |
 | Werkzeug | Hugging Face transformers · **GPU nötig** |
-| Quellen | HF NLP Course „Fine-tuning"; `MODELL-LANDKARTE.md` Teil 2 |
+| Quellen | HF NLP Course „Fine-tuning"; die 5 Achsen: Kap. 2 |
 
 **Das Modell-Menü** (alles Encoder-Transformer; Auswahl über die 5 Achsen):
 
@@ -346,7 +423,7 @@ Kategorie-Änderung = neu trainieren.
 
 ---
 
-## 7 · Track D — LLM per Prompt
+## 8 · Track D — LLM per Prompt
 
 | Steckbrief | |
 |---|---|
@@ -397,7 +474,7 @@ nur das Stellrad ist anders.*
 
 ---
 
-## 8 · Synthese
+## 9 · Synthese
 
 ### S1 — Gesamtvergleich
 
@@ -426,7 +503,7 @@ alle vier Lernziele erreichbar; wer sie baut, lernt den Betriebs-Aspekt.*
 
 ---
 
-## 9 · Der Lernpfad — 12 Etappen
+## 10 · Der Lernpfad — 12 Etappen
 
 **Reihenfolge = Geschichte des Fachs**: Jede Etappe behebt die Schwäche der
 vorherigen. Kern baut aufeinander auf; Kür vertieft, ohne dass Späteres
@@ -457,8 +534,62 @@ Wiederholung einzelner Etappen (mind. E0, E2, E5, E7) am Kontrast-Datensatz.
 | E10 | Mini-App = S2 | — | Kern | 1–2 Tage | Kaskade als Streamlit/CLI |
 | E11 | Ausblick | — | Kür | offen | Multi-Label · Topic Modeling · Active Learning · MLOps |
 
-*Nummerierungs-Hinweis: „Familie" (1–7) = Taxonomie aus `MODELL-LANDKARTE.md`;
+*Nummerierungs-Hinweis: „Familie" (1–7) = Taxonomie aus Kap. 2;
 Gen-Labels = Lehrbuch-Zoomstufe. Track B = Gen 2 = Familie 6 — gleiche Sache.*
+
+### Die Etappen ohne eigenen Track — im Detail
+
+Die Kern-Tracks (E2/E5/E6/E7) sind oben in Kap. 5–8 ausgearbeitet. Die
+übrigen Etappen hier:
+
+**E1 — Regeln & Keywords** *(Familie 1)*
+- **Bauen:** Keyword-Classifier von Hand (~30 Zeilen): Wortlisten pro
+  Klasse, meiste Treffer gewinnt. Zeitbudget: 2 Stunden Regel-Schreiben.
+- **Konzepte:** Regeln vs. Lernen · warum Ausnahmen explodieren ·
+  Regex/Wortlisten als Vorfilter-Handwerk (lebt in Kaskaden weiter).
+- **✓ Checkpoint:** Beschreibe den Moment, in dem dir das Regel-Schreiben
+  zu mühsam wurde — das *ist* das Argument für ML.
+
+**E3 — Statische Wort-Embeddings & fastText** *(Familie 3, Kür)*
+- **Modelle:** Word2Vec · GloVe (je: ein fester Vektor pro Wort) ·
+  **fastText** (Subword-Einheiten; zugleich eigener, extrem schneller
+  Classifier — Produktionsklassiker für Massendurchsatz).
+- **Übung 1:** Mit Wortvektoren spielen: Analogien (König − Mann + Frau ≈ ?),
+  nächste Nachbarn im Vokabular des eigenen Datensatzes.
+- **Übung 2:** fastText-Classifier trainieren (eine CLI-Zeile) — Accuracy
+  und Texte/Sekunde gegen Track A messen.
+- **✓ Checkpoint:** Warum ist ein mehrdeutiges Wort („Bank") für statische
+  Vektoren unlösbar — und wie lösen es die kontextuellen aus Track B?
+
+**E4 — Museum: CNN & LSTM** *(Familie 4, Kür)*
+- **Modelle:** Text-CNN (Kim 2014: Faltungsfilter über Wortfolgen) ·
+  RNN/LSTM/GRU/**BiLSTM** (sequenzielles Lesen mit Gedächtnis) · Attention
+  als Vorstufe des Transformers · ULMFiT/ELMo als BERT-Vorläufer.
+- **Übung:** Ein BiLSTM (oder Text-CNN) mit statischen Embeddings auf dem
+  eigenen Datensatz trainieren — inklusive der ganzen Mühsal: Padding,
+  Sequenzlängen, langsames Training.
+- **Warum Kür:** kostet Trainingsaufwand wie Track C, liefert Qualität
+  zwischen A und B — 2026 fast nie die richtige Wahl. Der Lernwert ist
+  historisch: *spüren*, welche Probleme der Transformer löste.
+- **✓ Checkpoint:** Nenne die zwei Gründe, warum der Transformer die
+  Sequenzmodelle verdrängte (Parallelisierung, Kontextzugriff) — belegt
+  mit deiner eigenen Trainingszeit-Messung.
+
+**E8 — Kombinationen** *(Meta-Familie)*
+- **Übung 1 — Ensemble:** zwei Tracks per Soft-Voting kombinieren —
+  schlägt es beide Einzelmodelle? Was kostet es?
+- **Übung 2 — Destillation:** LLM (Track D) labelt ~1.000 ungelabelte
+  Texte, ein kleines Modell (A/B) lernt daraus — wie nah kommt es dem LLM
+  bei ~0 laufenden Kosten? (Der Standardweg vom Prototyp zur Produktion.)
+- **Konzepte:** Voting/Stacking · Kaskaden (→ S2) · Destillation ·
+  Regel-Vorfilter (E1 kehrt zurück).
+- **✓ Checkpoint:** Welche Kombination baust du für 10 Mio. Texte/Monat —
+  und warum genau diese?
+
+**E11 — Ausblick** *(Kür)*: Multi-Label & hierarchische Klassifikation ·
+Topic Modeling (BERTopic) für den Fall ohne Kategorien · Active Learning ·
+MLOps/Monitoring — jedes ein eigenes kleines Projekt; Überblick in Kap. 2
+(„Angrenzende Felder").
 
 **Der rote Faden (Schwäche → nächste Etappe):**
 Raten (E0) → Regeln skalieren nicht (E1) → ML kennt keine Bedeutung (E2) →
@@ -469,7 +600,7 @@ Vergleich (E9) → Produkt (E10).
 
 ---
 
-## 10 · Leitplanken
+## 11 · Leitplanken
 
 1. **Erst die Baseline, dann eskalieren.**
 2. **Test-Split bleibt zu** — Varianten vergleicht man am Val-Set.
@@ -481,7 +612,7 @@ Vergleich (E9) → Produkt (E10).
 
 ---
 
-## 11 · Quellen
+## 12 · Quellen
 
 | Quelle | wofür | wo |
 |---|---|---|
@@ -499,7 +630,7 @@ Vergleich (E9) → Produkt (E10).
 
 ---
 
-## 12 · Glossar
+## 13 · Glossar
 
 **Accuracy** – Anteil korrekter Vorhersagen. **Baseline** – trivialer
 Vergleichswert. **CRISP-DM** – Standard-Prozessmodell für ML-Projekte.
