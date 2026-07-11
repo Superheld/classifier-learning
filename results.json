@@ -1,4 +1,10 @@
 {
+  "B_minilm_logreg": {
+    "accuracy": 0.9083,
+    "macro_f1": 0.9082,
+    "model": "MiniLM + LogReg",
+    "note": "P2 plain, frozen embeddings"
+  },
   "A_tuned_tfidf_logreg": {
     "accuracy": 0.9025,
     "macro_f1": 0.9025,
