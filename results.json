@@ -10,8 +10,10 @@
   "C_hybrid_roberta": {
     "accuracy": 0.9399,
     "macro_f1": 0.9396,
+    "weighted_f1": 0.9397,
     "model": "RoBERTa-ft Embeddings + LogReg (getunt)",
-    "note": "C×B Hybrid: finegetunter Encoder (frozen) + Track-B-Kopf, test 1x"
+    "note": "C×B Hybrid: finegetunter Encoder (frozen) + Track-B-Kopf, test 1x",
+    "score_type": "proba"
   },
   "C_tuned_roberta": {
     "accuracy": 0.9389,
