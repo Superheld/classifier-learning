@@ -23,16 +23,26 @@ Kein `.ipynb` → bessere Git-Diffs. Du führst sie normalerweise nicht als Skri
 Bruce fährt die Zellen interaktiv. Beim Bearbeiten die Zellstruktur und den
 Erklär-Ton (Markdown-Zellen `# %% [markdown]`) beibehalten.
 
-- **Notebooks sind Lehrmaterial — immer gut dokumentieren.** Das ist keine Zier,
-  sondern der Zweck: Bruce lernt daran. In **kleinen Schritten** vorgehen, jeden mit
-  einer Markdown-Zelle (`# %% [markdown]`) einleiten, die erklärt **was** wir tun,
-  **wie** es funktioniert und **warum** — vor der Code-Zelle, nicht nachträglich.
-  Fachbegriffe beim ersten Auftreten kurz erden (TF-IDF, Macro-F1, `fit`/`transform`).
-  Lieber eine Zelle mehr und ein Gedanke pro Zelle als ein dichter Block. Am Ende
-  eines Abschnitts kurz **deuten** (was sagt die Zahl?) und oft ein `# ✓ Checkpoint:`
-  als Verständnisfrage. Ton: erklärend, konkret, ohne Jargon-Nebel — wie ein Tutor,
-  der mitdenkt. Bestehende Dateien (`tfidf_logreg.py`) sind die Referenz für Dichte
-  und Ton.
+- **Notebooks sind Lehrmaterial — jede Datei lehrt für sich.** Bruce liest den Code,
+  um zu *lernen*, und kann in **jede** Datei schauen. Kein „siehe andere Datei" als
+  Ersatz fürs Erklären. Die **Tiefe** richtet sich danach, ob ein Schritt neu ist:
+  - **Neu oder besonders** in diesem Step → richtig erklären. Als Checkliste zum
+    Schöpfen (**nicht** alle erzwingen, geht nicht immer — nimm was passt): *was* es
+    ist, *welches Konzept*, *was es bedeutet*, *warum* so, *Vor-/Nachteile*,
+    *Alternativen* (damit Bruce eigene Experimente ableiten kann). Das ist das, was er
+    hier *kennenlernen* soll.
+  - **Schon dagewesen (Wiederholung)** → **kompakt** rekapitulieren, nicht weglassen:
+    ein, zwei Sätze, die den Schritt benennen und in Erinnerung rufen — ausführlich
+    genug zum Mitkommen, ohne den Roman zu wiederholen.
+- **Fremdwörter/Fachbegriffe immer erklären**, auch in der kompakten Variante — nie
+  unerklärt stehen lassen (TF-IDF, Macro-F1, `refit`, `fit`/`transform`, …).
+- **Kleine Schritte, ein Gedanke pro Zelle**, Markdown vor der Code-Zelle. Auch
+  scheinbar „selbsterklärende" Mechanik kurz benennen (echter Stolperstein: dass die
+  „Finale Messung"-Zelle erst *refittet*, dann *testet* — und warum). Am Abschnittsende
+  **deuten** (was sagt die Zahl?), oft ein `# ✓ Checkpoint:`. Ton: Tutor, der mitdenkt.
+  Referenz: `02_track_a_klassisches_ml/linear/tfidf_logreg.py`.
+- **Anpassen beim Anfassen:** Dateien, die noch mit „siehe andere Datei" abkürzen,
+  werden nachgezogen, **wenn wir sie ohnehin bearbeiten** — kein eigener Retrofit-Lauf.
 - **Konvention: eine Datei pro Modell**, benannt nach dem Modell (`tfidf_logreg.py`,
   `mpnet.py`). Jede Datei **wächst von *pure* (P2) zu *getunt* (P3)** — nicht neue
   Dateien pro Phase, sondern dieselbe Datei verlängern.
