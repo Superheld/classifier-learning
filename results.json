@@ -5,6 +5,26 @@
     "model": "mpnet + LinearSVC",
     "note": "P3 Kopf-Zyklus (val-getunt), test 1x"
   },
+  "C_tuned_roberta": {
+    "accuracy": 0.9389,
+    "macro_f1": 0.9386,
+    "model": "RoBERTa-base (finetuned, LR-getunt)",
+    "config": "lr=3e-05, epochs=6, warmup=0.06",
+    "note": "P3 LR auf val gewählt, refit full train, test 1x"
+  },
+  "C_plain_roberta": {
+    "accuracy": 0.9317,
+    "macro_f1": 0.9317,
+    "model": "RoBERTa-base (finetuned)",
+    "note": "P2 plain, Standardwerte, test 1x"
+  },
+  "C_lora_roberta": {
+    "accuracy": 0.9275,
+    "macro_f1": 0.9273,
+    "model": "RoBERTa-base (LoRA)",
+    "config": "r=8, alpha=16, lr=3e-04, epochs=6",
+    "note": "P3 LoRA-Sparmodus, test 1x"
+  },
   "B_mpnet_logreg": {
     "accuracy": 0.9223,
     "macro_f1": 0.9222,
@@ -23,6 +43,12 @@
     "model": "TF-IDF + LogReg",
     "config": "vec={'min_df': 2, 'sublinear_tf': True}, clf={'C': 10, 'class_weight': 'balanced'}",
     "note": "P3 getunt, Config auf val gewählt, test 1x gemessen"
+  },
+  "C_plain_distilbert": {
+    "accuracy": 0.9008,
+    "macro_f1": 0.8979,
+    "model": "DistilBERT (finetuned)",
+    "note": "P2 plain, Standardwerte, test 1x"
   },
   "A_tuned_tfidf_linsvc": {
     "accuracy": 0.895,

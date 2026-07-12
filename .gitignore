@@ -8,6 +8,10 @@ __pycache__/
 *.npy
 # trainierte sklearn-Modelle
 *.joblib
+# Track-C-Trainingsläufe (Checkpoints/Logs, regenerierbar) — an beliebiger Ebene
+runs*/
+# versehentlich verschachteltes Verzeichnis (relativer output_dir aus falschem cwd)
+04_track_c_finetuning/04_track_c_finetuning/
 
 # Nebendatensaetze (nicht Kern; via data/support/download_*.py holbar)
 data/support/*/
