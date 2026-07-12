@@ -2,8 +2,15 @@
   "B_mpnet_tuned": {
     "accuracy": 0.9412,
     "macro_f1": 0.9411,
+    "weighted_f1": 0.9411,
     "model": "mpnet + LinearSVC",
     "note": "P3 Kopf-Zyklus (val-getunt), test 1x"
+  },
+  "C_hybrid_roberta": {
+    "accuracy": 0.9399,
+    "macro_f1": 0.9396,
+    "model": "RoBERTa-ft Embeddings + LogReg (getunt)",
+    "note": "C×B Hybrid: finegetunter Encoder (frozen) + Track-B-Kopf, test 1x"
   },
   "C_tuned_roberta": {
     "accuracy": 0.9389,
@@ -23,7 +30,14 @@
     "macro_f1": 0.9273,
     "model": "RoBERTa-base (LoRA)",
     "config": "r=8, alpha=16, lr=3e-04, epochs=6",
-    "note": "P3 LoRA-Sparmodus, test 1x"
+    "note": "C peft/LoRA-Sparmodus, test 1x"
+  },
+  "C_tuned_mpnet_ft": {
+    "accuracy": 0.9239,
+    "macro_f1": 0.9231,
+    "model": "mpnet (finetuned, LR-getunt)",
+    "config": "lr=3e-05, epochs=6, warmup=100steps",
+    "note": "P3 LR auf val gewählt, refit full train, test 1x"
   },
   "B_mpnet_logreg": {
     "accuracy": 0.9223,
@@ -36,6 +50,12 @@
     "macro_f1": 0.9082,
     "model": "MiniLM + LogReg",
     "note": "P2 plain, frozen embeddings"
+  },
+  "C_plain_mpnet_ft": {
+    "accuracy": 0.907,
+    "macro_f1": 0.8977,
+    "model": "mpnet (finetuned)",
+    "note": "P2 plain, Standardwerte, test 1x"
   },
   "A_tuned_tfidf_logreg": {
     "accuracy": 0.9025,

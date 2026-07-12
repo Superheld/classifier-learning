@@ -10,6 +10,8 @@ __pycache__/
 *.joblib
 # persistierte Champion-Modelle (regenerierbar via Notebooks)
 modelle/
+# gespeicherte Vorhersagen je Modell (Quelle für Deep-Dive/Dashboard, regenerierbar)
+predictions/
 # Track-C-Trainingsläufe (Checkpoints/Logs, regenerierbar) — an beliebiger Ebene
 runs*/
 # versehentlich verschachteltes Verzeichnis (relativer output_dir aus falschem cwd)

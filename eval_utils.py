@@ -6,8 +6,16 @@ Zwei Blicke auf die Fehler eines Klassifikators:
   - plot_top_confusions : welche Intent-Paare wirft das Modell durcheinander?
 """
 
+import json
+import os
+
 import matplotlib.pyplot as plt
-from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_recall_fscore_support,
+)
 
 
 def plot_per_class_f1(y_true, y_pred, worst=None, title="F1 je Intent"):
@@ -93,3 +101,50 @@ def plot_top_confusions(y_true, y_pred, top=15, title="Häufigste Verwechslungen
     ax.set_title(title)
     plt.tight_layout()
     plt.show()
+
+
+PRED_DIR = os.path.join(os.path.dirname(__file__), "predictions")
+
+
+def evaluate_and_save(name, y_true, y_pred, model, note="", **extra):
+    """Zentraler Mess-Abschluss jedes Modells: voller Kennzahl-Satz + Persistenz.
+
+    Ersetzt den bisherigen `save_result(name, acc, macro_f1=…)`-Aufruf. Nimmt die
+    rohen Vorhersagen (Label-NAMEN) und macht daraus zwei Dinge:
+
+    1. **Kennzahlen** nach `results.json` (via `data_utils.save_result`):
+       - accuracy      — Anteil richtig (bei balanciertem Test die Leitmetrik)
+       - macro_f1      — F1 über Klassen gemittelt, jede Klasse gleich gewichtet
+                         (fair bei kleinen Klassen)
+       - weighted_f1   — F1 nach Klassengröße gewichtet; Vergleich macro↔weighted
+                         verrät, *wo* die Fehler sitzen (viele kleine vs. große Klassen)
+    2. **Vorhersagen je Testbeispiel** nach `predictions/<name>.json`. Das ist die
+       *Quelle der Wahrheit*: daraus lässt sich später jede Metrik, jede Confusion und
+       jeder Modell-gegen-Modell-Vergleich neu rechnen (Deep-Dive, Dashboard) — ohne
+       das Modell nochmal laufen zu lassen.
+
+    y_true, y_pred : gleich lange Listen von Label-NAMEN (Strings).
+    Rückgabe: dict der Kennzahlen.
+    """
+    from data_utils import save_result
+
+    y_true, y_pred = list(y_true), list(y_pred)
+    acc = accuracy_score(y_true, y_pred)
+    macro = f1_score(y_true, y_pred, average="macro")
+    weighted = f1_score(y_true, y_pred, average="weighted")
+
+    save_result(
+        name, acc,
+        macro_f1=round(macro, 4),
+        weighted_f1=round(weighted, 4),
+        model=model, note=note, **extra,
+    )
+
+    os.makedirs(PRED_DIR, exist_ok=True)
+    with open(os.path.join(PRED_DIR, f"{name}.json"), "w", encoding="utf-8") as f:
+        json.dump({"y_true": y_true, "y_pred": y_pred}, f, ensure_ascii=False)
+
+    print(f"[eval] {name}:  acc {acc*100:.2f} %  ·  macro-F1 {macro*100:.2f} %  ·  "
+          f"weighted-F1 {weighted*100:.2f} %")
+    print(f"       Vorhersagen → predictions/{name}.json  (Quelle für Deep-Dive & Dashboard)")
+    return {"accuracy": acc, "macro_f1": macro, "weighted_f1": weighted}
