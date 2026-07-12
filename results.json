@@ -42,8 +42,9 @@
   "B_mpnet_logreg": {
     "accuracy": 0.9223,
     "macro_f1": 0.9222,
+    "weighted_f1": 0.9222,
     "model": "mpnet + LogReg",
-    "note": "P3 staerkerer Encoder, frozen"
+    "note": "P2 plain-Kopf, staerkerer Encoder, frozen"
   },
   "B_minilm_logreg": {
     "accuracy": 0.9083,

@@ -43,7 +43,8 @@ for d in (root, root / "04_track_c_finetuning"):
 import numpy as np
 import torch
 
-from data_utils import load_banking77, save_result
+from data_utils import load_banking77
+from eval_utils import evaluate_and_save
 
 MODELL_DIR = root / "modelle" / "roberta_ft"
 assert MODELL_DIR.exists(), (
@@ -190,10 +191,11 @@ test_f1 = f1_score(test_labels, p, average="macro")
 print(f"RoBERTa-ft Embeddings + {best_head_name}   test-Acc: {test_acc*100:.2f} %   Macro-F1: {test_f1*100:.2f} %")
 print(f"Vergleich:  RoBERTa eigener Softmax-Kopf 93,89 %  ·  B mpnet frozen 94,12 %")
 
-save_result(
+# evaluate_and_save: speichert zusätzlich alle Test-Vorhersagen nach
+# predictions/C_hybrid_roberta.json (Fehler-Analyse). p/test_labels sind Label-NAMEN.
+evaluate_and_save(
     "C_hybrid_roberta",
-    test_acc,
-    macro_f1=round(test_f1, 4),
+    test_labels, p,
     model=f"RoBERTa-ft Embeddings + {best_head_name}",
     note="C×B Hybrid: finegetunter Encoder (frozen) + Track-B-Kopf, test 1x",
 )

@@ -39,6 +39,7 @@ from sklearn.metrics import accuracy_score, f1_score
 
 from data_utils import load_banking77, save_result
 from embeddings import encode
+from eval_utils import evaluate_and_save
 
 MODEL = "sentence-transformers/all-mpnet-base-v2"
 
@@ -75,8 +76,11 @@ macro_f1 = f1_score(test_labels, p, average="macro")
 print(f"mpnet + LogReg   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"MiniLM war 90.83 %   |   Track A 90.25 %")
 
-save_result("B_mpnet_logreg", acc, macro_f1=round(macro_f1, 4),
-            model="mpnet + LogReg", note="P3 staerkerer Encoder, frozen")
+# evaluate_and_save statt save_result: schreibt zusätzlich ALLE Test-Vorhersagen nach
+# predictions/B_mpnet_logreg.json (Quelle für die Fehler-Analyse im Dashboard) und
+# ergänzt weighted-F1. p und test_labels sind hier bereits Label-NAMEN.
+evaluate_and_save("B_mpnet_logreg", test_labels, p,
+                  model="mpnet + LogReg", note="P2 plain-Kopf, staerkerer Encoder, frozen")
 
 # %% [markdown]
 # ## Wo irrt das Modell?

@@ -51,7 +51,8 @@ from transformers import (
     TrainingArguments,
 )
 
-from data_utils import load_banking77, save_result
+from data_utils import load_banking77
+from eval_utils import evaluate_and_save
 
 MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"
 DEVICE = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -150,10 +151,12 @@ macro_f1 = f1_score(y_test, preds, average="macro")
 print(f"mpnet finetuned (plain)   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"Latte:  mpnet FROZEN 94,12 %  ·  RoBERTa finetuned 93,89 %")
 
-save_result(
+# evaluate_and_save braucht Label-NAMEN; der Trainer liefert IDs → id2label wandelt.
+# Speichert die Vorhersagen nach predictions/C_plain_mpnet_ft.json (Fehler-Analyse).
+pred_names = [id2label[int(p)] for p in preds]
+evaluate_and_save(
     "C_plain_mpnet_ft",
-    acc,
-    macro_f1=round(macro_f1, 4),
+    test_labels, pred_names,
     model="mpnet (finetuned)",
     note="P2 plain, Standardwerte, test 1x",
 )
@@ -260,10 +263,11 @@ macro_f1 = f1_score(y_test, preds, average="macro")
 print(f"\nmpnet finetuned (LR-getunt)   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"Latte:  mpnet FROZEN 94,12 %  ·  RoBERTa finetuned 93,89 %")
 
-save_result(
+# Label-NAMEN via id2label; Vorhersagen → predictions/C_tuned_mpnet_ft.json.
+pred_names = [id2label[int(p)] for p in preds]
+evaluate_and_save(
     "C_tuned_mpnet_ft",
-    acc,
-    macro_f1=round(macro_f1, 4),
+    test_labels, pred_names,
     model="mpnet (finetuned, LR-getunt)",
     config=f"lr={best_lr:.0e}, epochs={final_epochs}, warmup=100steps",
     note="P3 LR auf val gewählt, refit full train, test 1x",

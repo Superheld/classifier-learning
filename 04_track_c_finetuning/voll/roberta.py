@@ -350,7 +350,7 @@ print(f"\n→ beste LR: {best_lr:.0e}  (val Macro-F1 {best_val_f1*100:.2f} %, Ep
 # %%
 import math
 
-from data_utils import save_result
+from eval_utils import evaluate_and_save
 
 final_epochs = max(1, math.ceil(best_epoch))
 print(f"Refit: LR {best_lr:.0e}, {final_epochs} Epochen, volles Train ({len(train_texts)}).")
@@ -386,10 +386,13 @@ macro_f1 = f1_score(y_test, preds, average="macro")
 print(f"\nRoBERTa finetuned (LR-getunt)   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"Latte:  B mpnet 94,12 %  ·  RoBERTa plain 93,17 %")
 
-save_result(
+# evaluate_and_save braucht Label-NAMEN; der Trainer liefert Integer-IDs (y_test, preds).
+# id2label übersetzt zurück — dann landen die Vorhersagen in predictions/C_tuned_roberta.json.
+y_true_names = [id2label[int(i)] for i in y_test]
+y_pred_names = [id2label[int(i)] for i in preds]
+evaluate_and_save(
     "C_tuned_roberta",
-    acc,
-    macro_f1=round(macro_f1, 4),
+    y_true_names, y_pred_names,
     model="RoBERTa-base (finetuned, LR-getunt)",
     config=f"lr={best_lr:.0e}, epochs={final_epochs}, warmup=100steps",
     note="P3 LR auf val gewählt, refit full train, test 1x",
