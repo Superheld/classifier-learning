@@ -62,7 +62,8 @@ from transformers import (
     TrainingArguments,
 )
 
-from data_utils import load_banking77, save_result
+from data_utils import load_banking77
+from eval_utils import evaluate_and_save
 
 MODEL_NAME = "FacebookAI/roberta-base"
 
@@ -206,13 +207,18 @@ macro_f1 = f1_score(y_test, preds, average="macro")
 print(f"\nRoBERTa + LoRA   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"Vergleich:  volles Finetuning 93,89 %  ·  B mpnet 94,12 %")
 
-save_result(
+# Label-NAMEN via id2label; Scores = softmax der Logits → predictions/C_lora_roberta*.
+y_true_names = [id2label[int(i)] for i in y_test]
+pred_names = [id2label[int(p)] for p in preds]
+_proba = np.exp(pred.predictions - pred.predictions.max(axis=1, keepdims=True))
+_proba /= _proba.sum(axis=1, keepdims=True)
+evaluate_and_save(
     "C_lora_roberta",
-    acc,
-    macro_f1=round(macro_f1, 4),
+    y_true_names, pred_names,
     model="RoBERTa-base (LoRA)",
     config=f"r=8, alpha=16, lr={LORA_LR:.0e}, epochs={lora_epochs}",
     note="C peft/LoRA-Sparmodus, test 1x",
+    scores=_proba, classes=[id2label[i] for i in range(NUM_LABELS)], score_type="proba",
 )
 
 # %% [markdown]

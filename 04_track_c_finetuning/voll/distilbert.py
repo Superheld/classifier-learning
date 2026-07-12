@@ -273,7 +273,7 @@ trainer.train()
 import numpy as np
 from sklearn.metrics import accuracy_score, f1_score
 
-from data_utils import save_result
+from eval_utils import evaluate_and_save
 
 pred = trainer.predict(test_ds)
 preds = np.argmax(pred.predictions, axis=-1)
@@ -283,12 +283,17 @@ macro_f1 = f1_score(y_test, preds, average="macro")
 print(f"DistilBERT finetuned (plain)   Accuracy: {acc * 100:.2f} %   Macro-F1: {macro_f1 * 100:.2f} %")
 print(f"Latte:  B mpnet getunt 94,12 %  ·  A LogReg getunt 90,25 %")
 
-save_result(
+# Label-NAMEN via id2label; Scores = softmax der Logits → predictions/C_plain_distilbert*.
+y_true_names = [id2label[int(i)] for i in y_test]
+pred_names = [id2label[int(p)] for p in preds]
+_proba = np.exp(pred.predictions - pred.predictions.max(axis=1, keepdims=True))
+_proba /= _proba.sum(axis=1, keepdims=True)
+evaluate_and_save(
     "C_plain_distilbert",
-    acc,
-    macro_f1=round(macro_f1, 4),
+    y_true_names, pred_names,
     model="DistilBERT (finetuned)",
     note="P2 plain, Standardwerte, test 1x",
+    scores=_proba, classes=[id2label[i] for i in range(NUM_LABELS)], score_type="proba",
 )
 
 # %% [markdown]

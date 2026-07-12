@@ -36,7 +36,8 @@ for d in (root, root / "03_track_b_embeddings"):
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 
-from data_utils import load_banking77, save_result
+from data_utils import load_banking77
+from eval_utils import evaluate_and_save
 from embeddings import encode
 
 MODEL = "sentence-transformers/all-MiniLM-L6-v2"
@@ -96,8 +97,9 @@ macro_f1 = f1_score(test_labels, p, average="macro")
 print(f"MiniLM + LogReg   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"Track A (TF-IDF+LogReg getunt): 90.25 %   ← die Latte")
 
-save_result("B_minilm_logreg", acc, macro_f1=round(macro_f1, 4),
-            model="MiniLM + LogReg", note="P2 plain, frozen embeddings")
+evaluate_and_save("B_minilm_logreg", test_labels, p,
+                  model="MiniLM + LogReg", note="P2 plain, frozen embeddings",
+                  scores=clf.predict_proba(X_test), classes=clf.classes_, score_type="proba")
 
 # %% [markdown]
 # ## Wo irrt das Modell?

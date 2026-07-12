@@ -53,8 +53,10 @@
   "B_minilm_logreg": {
     "accuracy": 0.9083,
     "macro_f1": 0.9082,
+    "weighted_f1": 0.9083,
     "model": "MiniLM + LogReg",
-    "note": "P2 plain, frozen embeddings"
+    "note": "P2 plain, frozen embeddings",
+    "score_type": "proba"
   },
   "C_plain_mpnet_ft": {
     "accuracy": 0.907,
@@ -110,8 +112,10 @@
   "B_e5_logreg": {
     "accuracy": 0.8706,
     "macro_f1": 0.8642,
+    "weighted_f1": 0.8642,
     "model": "E5-base + LogReg",
-    "note": "P3 retrieval-Encoder (query:-Praefix), frozen"
+    "note": "P3 retrieval-Encoder (query:-Praefix), frozen",
+    "score_type": "proba"
   },
   "A_tuned_tfidf_multinomialnb": {
     "accuracy": 0.8703,

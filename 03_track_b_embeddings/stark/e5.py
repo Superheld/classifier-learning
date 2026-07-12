@@ -36,7 +36,8 @@ for d in (root, root / "03_track_b_embeddings"):
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score
 
-from data_utils import load_banking77, save_result
+from data_utils import load_banking77
+from eval_utils import evaluate_and_save
 from embeddings import encode
 
 MODEL = "intfloat/e5-base-v2"
@@ -92,8 +93,9 @@ macro_f1 = f1_score(test_labels, p, average="macro")
 print(f"E5 + LogReg   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
 print(f"Zum Vergleich:  MiniLM 90.83 %  ·  mpnet 92.23 %  ·  Track A 90.25 %")
 
-save_result("B_e5_logreg", acc, macro_f1=round(macro_f1, 4),
-            model="E5-base + LogReg", note="P3 retrieval-Encoder (query:-Praefix), frozen")
+evaluate_and_save("B_e5_logreg", test_labels, p,
+                  model="E5-base + LogReg", note="P3 retrieval-Encoder (query:-Praefix), frozen",
+                  scores=clf.predict_proba(X_test), classes=clf.classes_, score_type="proba")
 
 # %% [markdown]
 # ## Wo irrt das Modell?
