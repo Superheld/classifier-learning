@@ -10,6 +10,8 @@ transformers>=4.40
 datasets>=2.19
 accelerate>=0.30
 peft>=0.11          # LoRA (parameter-effizientes Finetuning, C·P3)
+gradio>=5           # Dashboard (06_synthese/dashboard.py)
+plotly>=5           # 3D-Embedding-Explorer im Dashboard
 # Optional, je Etappe (bei Bedarf einkommentieren):
 # fasttext-wheel     # E3
 # setfit             # B·P3
