@@ -38,6 +38,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from matplotlib.colors import ListedColormap
+from scipy.stats import binomtest
 from sklearn.linear_model import LogisticRegression
 from sklearn.manifold import TSNE
 from sklearn.metrics import precision_recall_fscore_support
@@ -312,6 +313,271 @@ def error_examples(key):
     )
 
 
+def class_report(key):
+    """Precision/Recall/F1/Support je Intent — der Standard-Klassifikationsreport.
+
+    - **Precision**: von allen, die das Modell *als X tippte*, wie viele waren X? (Fehlalarm-Maß)
+    - **Recall**:    von allen *echten X*, wie viele fand es? (Verpass-Maß)
+    - **F1**:        Harmonie aus beidem. Schwächste unten.
+    """
+    yt, yp = _load_pred(key)
+    labels = sorted(set(yt) | set(yp))
+    p, r, f1, sup = precision_recall_fscore_support(yt, yp, labels=labels, zero_division=0)
+    return pd.DataFrame({
+        "Intent": labels,
+        "Precision": np.round(p, 3),
+        "Recall": np.round(r, 3),
+        "F1": np.round(f1, 3),
+        "Support": sup,
+    }).sort_values("F1", ignore_index=True)
+
+
+# --- Signifikanz: ist ein Accuracy-Unterschied echt oder Rauschen? ---
+
+def bootstrap_ci(key, n_boot=2000, seed=0):
+    """95%-Konfidenzintervall der Accuracy per Bootstrap.
+
+    Idee: das Testset n_boot-mal MIT Zurücklegen neu ziehen, jedes Mal die Accuracy
+    rechnen → eine Verteilung. Deren 2,5-/97,5-Perzentil ist das Intervall. Sagt: „die
+    wahre Accuracy liegt mit 95% zwischen lo und hi". Überlappen zweier Intervalle =
+    Vorsicht, der Unterschied könnte Zufall sein.
+    """
+    yt, yp = _load_pred(key)
+    correct = (yp == yt).astype(float)
+    n = len(correct)
+    rng = np.random.default_rng(seed)
+    boot = np.array([correct[rng.integers(0, n, n)].mean() for _ in range(n_boot)])
+    return correct.mean(), np.percentile(boot, 2.5), np.percentile(boot, 97.5)
+
+
+def significance_overview():
+    """Je Modell: Accuracy + 95%-Bootstrap-Intervall (als Tabelle)."""
+    rows = []
+    for k in available_predictions():
+        acc, lo, hi = bootstrap_ci(k)
+        rows.append({
+            "Modell": k,
+            "Accuracy %": round(acc * 100, 2),
+            "95%-KI unten %": round(lo * 100, 2),
+            "95%-KI oben %": round(hi * 100, 2),
+        })
+    return pd.DataFrame(rows).sort_values("Accuracy %", ascending=False, ignore_index=True)
+
+
+def mcnemar_pairs():
+    """Paarweiser McNemar-Test zwischen allen Modellen mit Vorhersagen.
+
+    McNemar schaut NUR auf die Beispiele, wo genau *einer* der beiden recht hat
+    (die „diskordanten Paare"). Unter der Nullhypothese „beide gleich gut" sollten
+    A✗B✓ und A✓B✗ etwa gleich häufig sein — binomial mit p=0,5. Der exakte
+    Binomialtest gibt den p-Wert. p < 0,05 → der Unterschied ist signifikant.
+    """
+    keys = available_predictions()
+    rows = []
+    for i in range(len(keys)):
+        for j in range(i + 1, len(keys)):
+            a, b = keys[i], keys[j]
+            yt, ypa = _load_pred(a)
+            _, ypb = _load_pred(b)
+            ac, bc = (ypa == yt), (ypb == yt)
+            n_ab = int((~ac & bc).sum())   # A falsch, B richtig
+            n_ba = int((ac & ~bc).sum())   # A richtig, B falsch
+            n = n_ab + n_ba
+            p = binomtest(min(n_ab, n_ba), n, 0.5).pvalue if n > 0 else 1.0
+            rows.append({
+                "A": a, "B": b,
+                "A✗ B✓": n_ab, "A✓ B✗": n_ba,
+                "p-Wert": round(p, 4),
+                "signifikant (α=.05)": "ja" if p < 0.05 else "nein",
+            })
+    return pd.DataFrame(rows)
+
+
+# --- Scores: Kalibrierung, Top-k, Abstention (braucht predictions/<key>_scores.npy) ---
+
+def available_scores():
+    """Modelle, für die eine Score-Matrix vorliegt (predictions/<key>_scores.npy)."""
+    if not PRED_DIR.exists():
+        return []
+    return sorted(p.name[:-len("_scores.npy")] for p in PRED_DIR.glob("*_scores.npy"))
+
+
+def _scores(key):
+    """Lädt (y_true, Score-Matrix, Klassen-Reihenfolge, score_type) eines Modells."""
+    d = json.loads((PRED_DIR / f"{key}.json").read_text(encoding="utf-8"))
+    yt = np.array(d["y_true"])
+    classes = np.array(d["classes"])
+    S = np.load(PRED_DIR / f"{key}_scores.npy")
+    return yt, S, classes, d.get("score_type")
+
+
+def reliability_fig(key, bins=10):
+    """Reliability-Diagramm + ECE — nur für echte Wahrscheinlichkeiten sinnvoll.
+
+    Konfidenz (höchster Score) in Bins gruppieren; je Bin die *tatsächliche* Accuracy
+    gegen die *mittlere Konfidenz* auftragen. Auf der Diagonale = perfekt kalibriert.
+    Unter der Diagonale = zu selbstsicher (typisch für finegetunte Netze).
+    ECE (Expected Calibration Error) = gewichteter mittlerer Abstand zur Diagonale.
+    """
+    yt, S, classes, stype = _scores(key)
+    if stype != "proba":
+        return None
+    conf = S.max(1)
+    pred = classes[S.argmax(1)]
+    correct = (pred == yt).astype(float)
+    edges = np.linspace(0, 1, bins + 1)
+    xs, ys, ece, n = [], [], 0.0, len(yt)
+    for i in range(bins):
+        hi = conf <= edges[i + 1] if i == bins - 1 else conf < edges[i + 1]
+        m = (conf >= edges[i]) & hi
+        if m.sum() == 0:
+            continue
+        c, a = conf[m].mean(), correct[m].mean()
+        ece += (m.sum() / n) * abs(a - c)
+        xs.append(c)
+        ys.append(a)
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.plot([0, 1], [0, 1], "--", color="gray", label="perfekt kalibriert")
+    ax.plot(xs, ys, "o-", color="#5B8FF9", label="Modell")
+    ax.set_xlabel("mittlere Konfidenz je Bin")
+    ax.set_ylabel("tatsächliche Accuracy je Bin")
+    ax.set_title(f"Reliability — {key}   (ECE {ece*100:.2f} %)")
+    ax.set_xlim(0, 1)
+    ax.set_ylim(0, 1)
+    ax.legend()
+    fig.tight_layout()
+    return fig
+
+
+def topk_table(key, kmax=5):
+    """Top-k-Accuracy: steht die wahre Klasse unter den k höchstbewerteten? (Rang-basiert)."""
+    yt, S, classes, _ = _scores(key)
+    order = np.argsort(-S, axis=1)
+    n = len(yt)
+    rows = []
+    for k in range(1, kmax + 1):
+        topk = classes[order[:, :k]]
+        hit = np.mean([yt[i] in topk[i] for i in range(n)])
+        rows.append({"k": k, "Top-k Accuracy %": round(hit * 100, 2)})
+    return pd.DataFrame(rows)
+
+
+def risk_coverage_fig(key, steps=19):
+    """Risk-Coverage: nur die sichersten X% beantworten — wie steigt die Accuracy?
+
+    Nach Konfidenz sortieren, die untersichersten weglassen. Zeigt den Deploy-Hebel
+    „unsichere an Menschen weiterreichen". Rang-basiert → geht auch für SVM-Margen.
+    """
+    yt, S, classes, _ = _scores(key)
+    conf = S.max(1)
+    pred = classes[S.argmax(1)]
+    correct = (pred == yt).astype(float)
+    order = np.argsort(-conf)
+    n = len(yt)
+    cov = np.linspace(0.05, 1.0, steps)
+    accs = [correct[order[: max(1, int(c * n))]].mean() for c in cov]
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.plot(cov * 100, np.array(accs) * 100, "o-", color="#3D9970")
+    ax.set_xlabel("Abdeckung % (die sichersten X % werden beantwortet)")
+    ax.set_ylabel("Accuracy auf den beantworteten %")
+    ax.set_title(f"Risk-Coverage — {key}")
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    return fig
+
+
+# --- Betriebszahlen: aus 06_synthese/betriebszahlen.json (eigener Benchmark-Lauf) ---
+
+BETRIEB = ROOT / "06_synthese" / "betriebszahlen.json"
+
+
+def load_betrieb():
+    """Betriebszahlen (Parameter, Latenz, Größe) je Modell-Familie + Accuracy dazu.
+
+    Quelle: betriebszahlen.json (fair auf EINER Maschine gemessen, siehe
+    betriebszahlen.py). Accuracy wird aus results.json dazugejoint, damit die
+    Effizienz-Sicht (Accuracy vs. Kosten) möglich ist.
+    """
+    if not BETRIEB.exists():
+        return pd.DataFrame()
+    data = json.loads(BETRIEB.read_text(encoding="utf-8"))
+    results = json.loads(RESULTS.read_text(encoding="utf-8"))
+    rows = []
+    for d in data:
+        acc = results.get(d.get("result_key", ""), {}).get("accuracy")
+        rows.append({
+            "Familie": d.get("familie", d.get("result_key", "?")),
+            "Parameter (Mio)": d.get("params_mio"),
+            "Latenz ms/Anfrage": d.get("latenz_ms"),
+            "Größe MB": d.get("groesse_mb"),
+            "Accuracy %": round(acc * 100, 2) if acc is not None else None,
+        })
+    return pd.DataFrame(rows)
+
+
+def _score_type(key):
+    """score_type eines Modells (proba / logits / decision_function / None)."""
+    d = json.loads((PRED_DIR / f"{key}.json").read_text(encoding="utf-8"))
+    return d.get("score_type")
+
+
+def _calib_note(key):
+    """Kurzer Hinweis über der Reliability-Kurve — ob das Modell überhaupt kalibrierbar ist."""
+    if key is None:
+        return "_Kein Modell mit Scores vorhanden._"
+    st = _score_type(key)
+    if st == "proba":
+        return f"**{key}** — echte Wahrscheinlichkeiten (`proba`), Reliability-Kurve unten."
+    return (f"**{key}** — `score_type={st}`: nur Margen/Ränge, **nicht kalibrierbar**. "
+            "Für eine Reliability-Kurve müsste der Klassifikator erst kalibriert werden "
+            "(CalibratedClassifierCV, Platt/Isotonic).")
+
+
+def significance_ci_fig():
+    """Accuracy-Punkt je Modell mit 95%-Bootstrap-Intervall als waagerechtem Balken.
+
+    Überlappen sich zwei Balken kräftig, ist der Ranglisten-Unterschied mit Vorsicht
+    zu genießen — er könnte Stichproben-Rauschen sein.
+    """
+    df = significance_overview()
+    y = np.arange(len(df))
+    acc = df["Accuracy %"].to_numpy()
+    lo = df["95%-KI unten %"].to_numpy()
+    hi = df["95%-KI oben %"].to_numpy()
+    fig, ax = plt.subplots(figsize=(8, max(2, len(df) * 0.6)))
+    ax.errorbar(acc, y, xerr=[acc - lo, hi - acc], fmt="o", color="#5B8FF9", capsize=5)
+    ax.set_yticks(y)
+    ax.set_yticklabels(df["Modell"])
+    ax.invert_yaxis()
+    ax.set_xlabel("Accuracy % (Punkt) mit 95%-Bootstrap-KI (Balken)")
+    ax.set_title("Überlappen die Balken, ist der Unterschied evtl. Zufall")
+    ax.grid(axis="x", alpha=0.3)
+    fig.tight_layout()
+    return fig
+
+
+def betrieb_fig():
+    """Effizienz-Frontier: Accuracy gegen Parameterzahl (Log-Achse). Oben-links ist gut.
+
+    Die klassische „lohnt sich das große Modell?"-Sicht — kleiner Encoder oben links
+    schlägt großes Modell unten rechts an Wirtschaftlichkeit.
+    """
+    df = load_betrieb().dropna(subset=["Parameter (Mio)", "Accuracy %"])
+    fig, ax = plt.subplots(figsize=(8, 5))
+    if len(df):
+        ax.scatter(df["Parameter (Mio)"], df["Accuracy %"], s=60, color="#5B8FF9")
+        for _, r in df.iterrows():
+            ax.annotate(r["Familie"], (r["Parameter (Mio)"], r["Accuracy %"]),
+                        fontsize=8, xytext=(5, 3), textcoords="offset points")
+        ax.set_xscale("log")
+    ax.set_xlabel("Parameter (Mio, log)")
+    ax.set_ylabel("Accuracy %")
+    ax.set_title("Accuracy vs. Modellgröße — Effizienz-Frontier")
+    ax.grid(alpha=0.3)
+    fig.tight_layout()
+    return fig
+
+
 def boundary_2d(cache_path, title):
     """Ehrliche „Ebenen"-Ansicht: t-SNE → 2D, dann ein linearer Kopf, der AUF diesen
     2D-Koordinaten trainiert wird — die farbigen Regionen sind SEINE Grenzen.
@@ -498,12 +764,110 @@ def build_app():
                 value=error_examples(default) if default else None,
                 interactive=False, wrap=True,
             )
+            gr.Markdown(
+                "**Per-Klasse-Report** — Precision/Recall/F1/Support je Intent, schwächste "
+                "oben. Precision = wie oft stimmt ein *X-Tipp*; Recall = wie viele *echte X* "
+                "gefunden. Klaffen sie auseinander, weißt du, ob das Modell zu *vorsichtig* "
+                "(hohe Precision, niedriger Recall) oder zu *vorschnell* ist."
+            )
+            report_out = gr.Dataframe(
+                value=class_report(default) if default else None,
+                interactive=False, wrap=True,
+            )
 
             def _refresh(key):
-                """Event-Handler: Modell-Key rein → drei aktualisierte Tabellen raus."""
-                return confusion_pairs(key), weak_classes(key), error_examples(key)
+                """Event-Handler: Modell-Key rein → vier aktualisierte Tabellen raus."""
+                return (confusion_pairs(key), weak_classes(key),
+                        error_examples(key), class_report(key))
 
-            model_dd.change(_refresh, inputs=model_dd, outputs=[conf_out, weak_out, err_out])
+            model_dd.change(_refresh, inputs=model_dd,
+                            outputs=[conf_out, weak_out, err_out, report_out])
+
+        # Tab 5: Signifikanz — ist ein Accuracy-Unterschied echt oder Rauschen?
+        with gr.Tab("Signifikanz"):
+            gr.Markdown(
+                "**Ist der Unterschied echt?** Unsere Spitze liegt bei 94,12 vs. 93,99 vs. … — "
+                "bei 3076 Testbeispielen sind **0,13 Punkte ≈ 4 Datensätze**. Das kann Rauschen "
+                "sein. Zwei Standardwerkzeuge sagen, ob eine Rangfolge trägt.\n\n"
+                "**Bootstrap-KI:** je Modell die Accuracy mit 95%-Konfidenzintervall. "
+                "Überlappen zwei Balken, ist der Unterschied mit Vorsicht zu genießen."
+            )
+            gr.Plot(significance_ci_fig())
+            gr.Dataframe(value=significance_overview(), interactive=False, wrap=True)
+            gr.Markdown(
+                "**McNemar-Test** (paarweise): schaut nur auf die Beispiele, wo genau *einer* "
+                "recht hat. `p < 0,05` → der Unterschied ist statistisch signifikant. "
+                "Steht hier **nein**, sind die beiden Modelle praktisch gleichauf — egal, wer "
+                "die dritte Nachkommastelle gewinnt."
+            )
+            gr.Dataframe(value=mcnemar_pairs(), interactive=False, wrap=True)
+
+        # Tab 6: Kalibrierung — sagt das Modell ehrlich, wie sicher es ist?
+        with gr.Tab("Kalibrierung"):
+            gr.Markdown(
+                "**Stimmt die Selbstsicherheit?** Wenn ein Modell zu 90 % sicher ist — trifft "
+                "es dann in 90 % der Fälle zu? Das **Reliability-Diagramm** trägt die tatsächliche "
+                "Accuracy gegen die Konfidenz auf; auf der Diagonale = perfekt kalibriert, "
+                "darunter = zu selbstsicher. **ECE** fasst die Abweichung in einer Zahl.\n\n"
+                "Geht nur für Modelle mit *echten Wahrscheinlichkeiten* (`score_type=proba`). "
+                "Der Champion (LinearSVC) liefert nur **Margen** — nicht kalibrierbar ohne "
+                "`CalibratedClassifierCV`. Genau diese Ehrlichkeit ist der Lerneffekt."
+            )
+            _scored = available_scores()
+            _cal_default = next((k for k in _scored
+                                 if _score_type(k) == "proba"), None)
+            cal_dd = gr.Dropdown(choices=_scored, value=_cal_default, label="Modell (mit Scores)")
+            cal_note = gr.Markdown(_calib_note(_cal_default))
+            cal_plot = gr.Plot(reliability_fig(_cal_default) if _cal_default else None)
+
+            def _refresh_cal(key):
+                return _calib_note(key), reliability_fig(key)
+
+            cal_dd.change(_refresh_cal, inputs=cal_dd, outputs=[cal_note, cal_plot])
+
+        # Tab 7: Konfidenz & Abstention — die Deploy-Sicht.
+        with gr.Tab("Konfidenz & Abstention"):
+            gr.Markdown(
+                "**Die Betriebssicht.** Zwei Hebel, die ein echtes System nutzt:\n"
+                "- **Top-k**: bei 77 Intents zeigt man oft *drei* Vorschläge. Top-3 ist meist "
+                "viel höher als Top-1 — die ehrlichere Zahl dafür, ob es dem Nutzer hilft.\n"
+                "- **Risk-Coverage / Abstention**: die unsichersten Anfragen an einen Menschen "
+                "weiterreichen. Die Kurve zeigt, wie die Accuracy auf dem Rest steigt.\n\n"
+                "Beides ist rang-basiert und geht auch für den Margen-Champion."
+            )
+            _sc = available_scores()
+            _sc_default = _sc[0] if _sc else None
+            conf_dd = gr.Dropdown(choices=_sc, value=_sc_default, label="Modell (mit Scores)")
+            topk_out = gr.Dataframe(
+                value=topk_table(_sc_default) if _sc_default else None,
+                interactive=False, wrap=True,
+            )
+            rc_plot = gr.Plot(risk_coverage_fig(_sc_default) if _sc_default else None)
+
+            def _refresh_conf(key):
+                return topk_table(key), risk_coverage_fig(key)
+
+            conf_dd.change(_refresh_conf, inputs=conf_dd, outputs=[topk_out, rc_plot])
+
+        # Tab 8: Betriebszahlen — Accuracy ist nicht alles (Kosten der Deploy-Entscheidung).
+        with gr.Tab("Betriebszahlen"):
+            gr.Markdown(
+                "**Was kostet das Modell im Betrieb?** Für die Welches-nehmen-Frage zählen "
+                "oft Parameter, Latenz und Größe mehr als die dritte Nachkommastelle Accuracy. "
+                "Gemessen fair auf **einer** Maschine (siehe `betriebszahlen.py`).\n\n"
+                "Die **Effizienz-Frontier** (Accuracy vs. Parameter, Log-Achse): oben-links = "
+                "viel Leistung fürs Geld. Ein kleiner eingefrorener Encoder oben links schlägt "
+                "ein großes Modell unten rechts wirtschaftlich."
+            )
+            _bt = load_betrieb()
+            if len(_bt):
+                gr.Plot(betrieb_fig())
+                gr.Dataframe(value=_bt, interactive=False, wrap=True)
+            else:
+                gr.Markdown(
+                    "_Noch keine Betriebszahlen — bitte einmal `python 06_synthese/"
+                    "betriebszahlen.py` laufen lassen (misst Parameter, Latenz, Größe)._"
+                )
 
     return app
 

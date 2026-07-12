@@ -12,6 +12,8 @@ __pycache__/
 modelle/
 # gespeicherte Vorhersagen je Modell (Quelle für Deep-Dive/Dashboard, regenerierbar)
 predictions/
+# Betriebszahlen-Benchmark (maschinen-spezifische Latenz, via betriebszahlen.py regenerierbar)
+06_synthese/betriebszahlen.json
 # Track-C-Trainingsläufe (Checkpoints/Logs, regenerierbar) — an beliebiger Ebene
 runs*/
 # versehentlich verschachteltes Verzeichnis (relativer output_dir aus falschem cwd)
