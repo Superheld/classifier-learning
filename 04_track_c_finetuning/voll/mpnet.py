@@ -154,11 +154,14 @@ print(f"Latte:  mpnet FROZEN 94,12 %  ·  RoBERTa finetuned 93,89 %")
 # evaluate_and_save braucht Label-NAMEN; der Trainer liefert IDs → id2label wandelt.
 # Speichert die Vorhersagen nach predictions/C_plain_mpnet_ft.json (Fehler-Analyse).
 pred_names = [id2label[int(p)] for p in preds]
+_proba = np.exp(pred.predictions - pred.predictions.max(axis=1, keepdims=True))
+_proba /= _proba.sum(axis=1, keepdims=True)
 evaluate_and_save(
     "C_plain_mpnet_ft",
     test_labels, pred_names,
     model="mpnet (finetuned)",
     note="P2 plain, Standardwerte, test 1x",
+    scores=_proba, classes=[id2label[i] for i in range(NUM_LABELS)], score_type="proba",
 )
 
 # %% [markdown]
@@ -265,12 +268,15 @@ print(f"Latte:  mpnet FROZEN 94,12 %  ·  RoBERTa finetuned 93,89 %")
 
 # Label-NAMEN via id2label; Vorhersagen → predictions/C_tuned_mpnet_ft.json.
 pred_names = [id2label[int(p)] for p in preds]
+_proba = np.exp(pred.predictions - pred.predictions.max(axis=1, keepdims=True))
+_proba /= _proba.sum(axis=1, keepdims=True)
 evaluate_and_save(
     "C_tuned_mpnet_ft",
     test_labels, pred_names,
     model="mpnet (finetuned, LR-getunt)",
     config=f"lr={best_lr:.0e}, epochs={final_epochs}, warmup=100steps",
     note="P3 LR auf val gewählt, refit full train, test 1x",
+    scores=_proba, classes=[id2label[i] for i in range(NUM_LABELS)], score_type="proba",
 )
 
 # %% [markdown]

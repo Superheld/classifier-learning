@@ -9,6 +9,7 @@ Zwei Blicke auf die Fehler eines Klassifikators:
 import json
 import os
 
+import numpy as np
 import matplotlib.pyplot as plt
 from sklearn.metrics import (
     accuracy_score,
@@ -106,11 +107,12 @@ def plot_top_confusions(y_true, y_pred, top=15, title="Häufigste Verwechslungen
 PRED_DIR = os.path.join(os.path.dirname(__file__), "predictions")
 
 
-def evaluate_and_save(name, y_true, y_pred, model, note="", **extra):
+def evaluate_and_save(name, y_true, y_pred, model, note="",
+                      scores=None, classes=None, score_type=None, **extra):
     """Zentraler Mess-Abschluss jedes Modells: voller Kennzahl-Satz + Persistenz.
 
     Ersetzt den bisherigen `save_result(name, acc, macro_f1=…)`-Aufruf. Nimmt die
-    rohen Vorhersagen (Label-NAMEN) und macht daraus zwei Dinge:
+    rohen Vorhersagen (Label-NAMEN) und macht daraus mehrere Dinge:
 
     1. **Kennzahlen** nach `results.json` (via `data_utils.save_result`):
        - accuracy      — Anteil richtig (bei balanciertem Test die Leitmetrik)
@@ -118,12 +120,26 @@ def evaluate_and_save(name, y_true, y_pred, model, note="", **extra):
                          (fair bei kleinen Klassen)
        - weighted_f1   — F1 nach Klassengröße gewichtet; Vergleich macro↔weighted
                          verrät, *wo* die Fehler sitzen (viele kleine vs. große Klassen)
-    2. **Vorhersagen je Testbeispiel** nach `predictions/<name>.json`. Das ist die
-       *Quelle der Wahrheit*: daraus lässt sich später jede Metrik, jede Confusion und
-       jeder Modell-gegen-Modell-Vergleich neu rechnen (Deep-Dive, Dashboard) — ohne
-       das Modell nochmal laufen zu lassen.
+       - beliebige **extra**-Felder (z.B. n_params, latenz_ms, groesse_mb) landen 1:1
+         als Zusatzspalten im Scoreboard.
+    2. **Vorhersagen je Testbeispiel** nach `predictions/<name>.json` (y_true/y_pred).
+       Die *Quelle der Wahrheit* für harte Metriken: Confusion, per-Klasse-Report,
+       Signifikanztests (McNemar/Bootstrap), Fehler-CSV — alles ohne Neu-Lauf.
+    3. **Scores** (optional) nach `predictions/<name>_scores.npy`: die Konfidenz-Matrix
+       (N × Klassen). *Das* schaltet die reichhaltige Analyse frei:
+       - Kalibrierung (ECE, Reliability, Brier) — sagt das Modell ehrlich, wie sicher es ist?
+       - Top-k-Accuracy — steht die wahre Klasse unter den Top-3?
+       - Abstention/Risk-Coverage — was gewinnt man, wenn man die Unsichersten auslagert?
+       `score_type` merkt sich die *Art* der Scores, weil sie nicht gleichwertig sind:
+         · "proba"             — echte Wahrscheinlichkeiten (LogReg, softmax-Netze) → alles möglich
+         · "logits"            — rohe Netz-Ausgaben vor softmax
+         · "decision_function" — SVM-Margen (LinearSVC!) → nur Rang-basiertes (Top-k, Abstention),
+                                 KEINE Kalibrierung (Margen sind keine Wahrscheinlichkeiten)
+       `classes` gibt die Spalten-Reihenfolge der Score-Matrix (welche Spalte = welches Label).
 
     y_true, y_pred : gleich lange Listen von Label-NAMEN (Strings).
+    scores         : Array (N, |classes|) oder None.
+    classes        : Label-Namen in Spalten-Reihenfolge der scores (z.B. clf.classes_).
     Rückgabe: dict der Kennzahlen.
     """
     from data_utils import save_result
@@ -133,18 +149,28 @@ def evaluate_and_save(name, y_true, y_pred, model, note="", **extra):
     macro = f1_score(y_true, y_pred, average="macro")
     weighted = f1_score(y_true, y_pred, average="weighted")
 
-    save_result(
-        name, acc,
-        macro_f1=round(macro, 4),
-        weighted_f1=round(weighted, 4),
-        model=model, note=note, **extra,
-    )
+    meta = dict(macro_f1=round(macro, 4), weighted_f1=round(weighted, 4),
+                model=model, note=note, **extra)
+    if score_type is not None:
+        meta["score_type"] = score_type  # nur setzen, wenn Scores vorliegen (kein null-Rauschen)
+    save_result(name, acc, **meta)
 
     os.makedirs(PRED_DIR, exist_ok=True)
+    payload = {"y_true": y_true, "y_pred": y_pred}
+    if classes is not None:
+        payload["classes"] = list(classes)  # Spalten-Reihenfolge der Score-Matrix
+    if score_type is not None:
+        payload["score_type"] = score_type
     with open(os.path.join(PRED_DIR, f"{name}.json"), "w", encoding="utf-8") as f:
-        json.dump({"y_true": y_true, "y_pred": y_pred}, f, ensure_ascii=False)
+        json.dump(payload, f, ensure_ascii=False)
+
+    saved_scores = ""
+    if scores is not None:
+        np.save(os.path.join(PRED_DIR, f"{name}_scores.npy"),
+                np.asarray(scores, dtype=np.float32))
+        saved_scores = f"  +  scores {np.asarray(scores).shape} ({score_type})"
 
     print(f"[eval] {name}:  acc {acc*100:.2f} %  ·  macro-F1 {macro*100:.2f} %  ·  "
           f"weighted-F1 {weighted*100:.2f} %")
-    print(f"       Vorhersagen → predictions/{name}.json  (Quelle für Deep-Dive & Dashboard)")
+    print(f"       Vorhersagen → predictions/{name}.json{saved_scores}")
     return {"accuracy": acc, "macro_f1": macro, "weighted_f1": weighted}

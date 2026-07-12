@@ -390,12 +390,17 @@ print(f"Latte:  B mpnet 94,12 %  ·  RoBERTa plain 93,17 %")
 # id2label übersetzt zurück — dann landen die Vorhersagen in predictions/C_tuned_roberta.json.
 y_true_names = [id2label[int(i)] for i in y_test]
 y_pred_names = [id2label[int(i)] for i in preds]
+# Scores: softmax über die Logits → Wahrscheinlichkeiten (Spalten = id2label[0..N-1]).
+_logits = pred.predictions
+_proba = np.exp(_logits - _logits.max(axis=1, keepdims=True))
+_proba /= _proba.sum(axis=1, keepdims=True)
 evaluate_and_save(
     "C_tuned_roberta",
     y_true_names, y_pred_names,
     model="RoBERTa-base (finetuned, LR-getunt)",
     config=f"lr={best_lr:.0e}, epochs={final_epochs}, warmup=100steps",
     note="P3 LR auf val gewählt, refit full train, test 1x",
+    scores=_proba, classes=[id2label[i] for i in range(NUM_LABELS)], score_type="proba",
 )
 
 # %% [markdown]

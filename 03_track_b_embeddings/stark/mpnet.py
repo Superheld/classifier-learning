@@ -80,7 +80,8 @@ print(f"MiniLM war 90.83 %   |   Track A 90.25 %")
 # predictions/B_mpnet_logreg.json (Quelle für die Fehler-Analyse im Dashboard) und
 # ergänzt weighted-F1. p und test_labels sind hier bereits Label-NAMEN.
 evaluate_and_save("B_mpnet_logreg", test_labels, p,
-                  model="mpnet + LogReg", note="P2 plain-Kopf, staerkerer Encoder, frozen")
+                  model="mpnet + LogReg", note="P2 plain-Kopf, staerkerer Encoder, frozen",
+                  scores=clf.predict_proba(X_test), classes=clf.classes_, score_type="proba")
 
 # %% [markdown]
 # ## Wo irrt das Modell?
@@ -204,8 +205,15 @@ test_f1 = f1_score(test_labels, pt, average="macro")
 print(f"mpnet + {best_head_name} (getunt)  test-Acc: {test_acc*100:.2f} %   Macro-F1: {test_f1*100:.2f} %")
 print(f"mpnet + LogReg plain war: 92.23 %")
 
-save_result("B_mpnet_tuned", test_acc, macro_f1=round(test_f1, 4),
-            model=f"mpnet + {best_head_name}", note="P3 Kopf-Zyklus (val-getunt), test 1x")
+# Scores fürs Dashboard: je nach Sieger-Kopf Wahrscheinlichkeiten (LogReg/kNN) oder
+# SVM-Margen (LinearSVC hat kein predict_proba → decision_function, nur rang-basiert).
+if hasattr(final, "predict_proba"):
+    _scores, _stype = final.predict_proba(X_test), "proba"
+else:
+    _scores, _stype = final.decision_function(X_test), "decision_function"
+evaluate_and_save("B_mpnet_tuned", test_labels, pt,
+                  model=f"mpnet + {best_head_name}", note="P3 Kopf-Zyklus (val-getunt), test 1x",
+                  scores=_scores, classes=final.classes_, score_type=_stype)
 
 # %% [markdown]
 # ## Deuten

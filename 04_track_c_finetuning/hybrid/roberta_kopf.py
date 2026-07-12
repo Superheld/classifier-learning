@@ -193,11 +193,16 @@ print(f"Vergleich:  RoBERTa eigener Softmax-Kopf 93,89 %  ·  B mpnet frozen 94,
 
 # evaluate_and_save: speichert zusätzlich alle Test-Vorhersagen nach
 # predictions/C_hybrid_roberta.json (Fehler-Analyse). p/test_labels sind Label-NAMEN.
+if hasattr(final, "predict_proba"):
+    _scores, _stype = final.predict_proba(X_test), "proba"
+else:
+    _scores, _stype = final.decision_function(X_test), "decision_function"
 evaluate_and_save(
     "C_hybrid_roberta",
     test_labels, p,
     model=f"RoBERTa-ft Embeddings + {best_head_name}",
     note="C×B Hybrid: finegetunter Encoder (frozen) + Track-B-Kopf, test 1x",
+    scores=_scores, classes=final.classes_, score_type=_stype,
 )
 
 # %% [markdown]

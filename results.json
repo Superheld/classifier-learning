@@ -4,7 +4,8 @@
     "macro_f1": 0.9411,
     "weighted_f1": 0.9411,
     "model": "mpnet + LinearSVC",
-    "note": "P3 Kopf-Zyklus (val-getunt), test 1x"
+    "note": "P3 Kopf-Zyklus (val-getunt), test 1x",
+    "score_type": "decision_function"
   },
   "C_hybrid_roberta": {
     "accuracy": 0.9399,
@@ -44,7 +45,8 @@
     "macro_f1": 0.9222,
     "weighted_f1": 0.9222,
     "model": "mpnet + LogReg",
-    "note": "P2 plain-Kopf, staerkerer Encoder, frozen"
+    "note": "P2 plain-Kopf, staerkerer Encoder, frozen",
+    "score_type": "proba"
   },
   "B_minilm_logreg": {
     "accuracy": 0.9083,
