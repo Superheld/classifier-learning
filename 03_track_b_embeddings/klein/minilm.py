@@ -1,14 +1,17 @@
 # %% [markdown]
 # # Track B · klein — MiniLM + LogReg (banking77)
 #
-# ## P2 „Bauen" — erster Encoder
+# ## P2 „Bauen" — der erste Encoder
 #
-# **MiniLM** (`all-MiniLM-L6-v2`) ist der Start-Encoder der kleinen Familie:
-# schnell, 384 Dimensionen, solide Baseline. Die allgemeine Vorarbeit (Konzept,
-# Kontextfenster-Check, Encode/Cache-Mechanik) steht in `../vorbereiten.py` — hier
-# bauen wir nur noch: **encodieren → Kopf → messen.**
+# **MiniLM** (`all-MiniLM-L6-v2`) ist der Start-Encoder der *kleinen* Familie:
+# schnell, **384** Dimensionen, eine solide Baseline für Gen 2. Die allgemeine
+# Vorarbeit — der Generationssprung Gen 1 → Gen 2, der Kontextfenster-Check und die
+# Encode/Cache-Mechanik — steht in **`../vorbereiten.py`** und wird hier nicht
+# wiederholt. Dieses Notebook ist der erste konkrete Bau: **encodieren → Kopf →
+# messen.**
 #
-# Die Latte: Track A getunt = **90,25 %** (TF-IDF + LogReg).
+# Die Latte: Track A getunt = **90,25 %** (TF-IDF + LogReg). Kann ein *kleiner*
+# semantischer Encoder das schon schlagen?
 
 # %% [markdown]
 # ## Setup
@@ -43,8 +46,11 @@ test_texts, test_labels = load_banking77("test")
 print(f"train: {len(train_texts)}   test: {len(test_texts)}   Intents: {len(set(train_labels))}")
 
 # %% [markdown]
-# ## Encodieren (aus dem Cache, sonst rechnen)
-# Text → 384-dim Bedeutungsvektor. Details in `../vorbereiten.py`.
+# ## Schritt 1 — Encodieren: Text → Bedeutungsvektor
+#
+# Jede Anfrage wird zu einem 384-dim Vektor, in dem semantisch Ähnliches nah
+# beieinander liegt. Teuer zu rechnen, aber einmalig pro Encoder — darum gecacht
+# (`.npy`); der zweite Lauf ist sofort da. Mechanik: `../vorbereiten.py`.
 
 # %%
 X_train = encode(MODEL, train_texts, "minilm", "train")
@@ -52,17 +58,39 @@ X_test = encode(MODEL, test_texts, "minilm", "test")
 print(f"X_train: {X_train.shape}  (Anfragen × Embedding-Dimension)")
 
 # %% [markdown]
-# ## Kopf trainieren und messen
+# ## Kurzer Blick: was *ist* so ein Embedding?
 #
-# LogReg auf den eingefrorenen Embeddings — derselbe Kopf wie der Gen-1-Sieger,
-# fairer Vergleich. Die Embeddings sind dicht (nicht spärlich wie TF-IDF), das
-# Training ist schnell.
+# Keine Wort-Zählung mehr (wie TF-IDF), sondern 384 dichte Kommazahlen pro Anfrage.
+# Der Encoder liefert sie **L2-normalisiert** (Länge ≈ 1) — praktisch, weil dann
+# Cosinus-Ähnlichkeit und lineare Köpfe gut damit rechnen.
+
+# %%
+import numpy as np
+
+print(f"Erste Anfrage: {train_texts[0]!r}")
+print(f"Vektor (erste 5 von 384): {np.round(X_train[0][:5], 3)}")
+print(f"Vektorlänge (L2-Norm):     {np.linalg.norm(X_train[0]):.3f}  (≈ 1, normalisiert)")
+
+# %% [markdown]
+# ## Schritt 2 — Kopf trainieren
+#
+# Auf die eingefrorenen Embeddings kommt **derselbe Kopf wie der Gen-1-Sieger**
+# (LogReg) — das macht den Vergleich fair: gleicher Klassifikator, nur die Merkmale
+# sind jetzt Bedeutung statt Wort-Zählung. Weil die Embeddings dicht sind (nicht
+# spärlich wie TF-IDF), ist das Training schnell.
 
 # %%
 clf = LogisticRegression(max_iter=1000)
 clf.fit(X_train, train_labels)
 p = clf.predict(X_test)
 
+# %% [markdown]
+# ## Schritt 3 — Messen
+#
+# Gleiches Besteck wie in Track A (Accuracy + Macro-F1), damit die Zahlen direkt
+# vergleichbar sind.
+
+# %%
 acc = accuracy_score(test_labels, p)
 macro_f1 = f1_score(test_labels, p, average="macro")
 print(f"MiniLM + LogReg   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
@@ -73,6 +101,9 @@ save_result("B_minilm_logreg", acc, macro_f1=round(macro_f1, 4),
 
 # %% [markdown]
 # ## Wo irrt das Modell?
+#
+# Zwei Blicke wie in Track A — die Confusion zeigt, *welche* Intent-Paare der
+# Encoder verwechselt.
 
 # %%
 from eval_utils import plot_confusion_matrix, plot_per_class_f1, plot_top_confusions
@@ -85,9 +116,11 @@ plot_per_class_f1(test_labels, p, worst=20)
 # ## Deuten
 #
 # - Schlägt der **kleine** Encoder schon die getunte TF-IDF-Latte, oder braucht es
-#   die starken Encoder (E5/BGE) aus P3?
-# - Verwechselt MiniLM **dieselben** Intent-Paare wie TF-IDF (→ liegt an den Daten)
-#   oder andere (→ die Semantik trägt wirklich etwas bei)?
+#   die starken Encoder (mpnet/E5) aus P3? (Und das *plain*, ohne einen getunten Kopf.)
+# - Verwechselt MiniLM **dieselben** Intent-Paare wie TF-IDF (→ liegt an den Daten,
+#   die Paare sind inhärent nah) oder **andere** (→ die Semantik trägt wirklich etwas
+#   bei, wo Wort-Überlappung versagte)? Der Abgleich mit Track As Confusion ist der Test.
 #
 # **✓ Checkpoint (CURRICULUM):** In welchem Szenario schlagen Embeddings
-# Bag-of-Words deutlich — und warum? (Stichwort: wenig Labels, Synonyme.)
+# Bag-of-Words *deutlich* — und warum? (Stichwort: wenig Labels, Synonyme, kein
+# gemeinsames Vokabular zwischen Anfrage und Trainingstext.)

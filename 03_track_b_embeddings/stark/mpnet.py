@@ -1,11 +1,16 @@
 # %% [markdown]
-# # Track B · stark — mpnet + LogReg (banking77)
+# # Track B · stark — mpnet + Kopf (banking77)
 #
-# ## P3 — stärkerer Encoder
+# ## P3 — stärkerer Encoder + Kopf-Zyklus
 #
-# **all-mpnet-base-v2**: dasselbe SBERT-Prinzip wie MiniLM, aber größer (768 statt
-# 384 Dimensionen, mächtigeres Basismodell). Gilt als eines der stärksten
-# „general purpose"-SBERT-Modelle. Kein Prefix nötig. Vorarbeit: `../vorbereiten.py`.
+# **all-mpnet-base-v2** ist dasselbe SBERT-Prinzip wie MiniLM, nur größer: **768**
+# statt 384 Dimensionen, mächtigeres Basismodell. Es gilt als einer der stärksten
+# „general purpose"-Satz-Encoder — gebaut dafür, dass semantisch ähnliche Sätze nah
+# beieinander liegen. Kein Präfix nötig (anders als E5). Vorarbeit: `../vorbereiten.py`.
+#
+# Dieses Notebook macht **zwei Dinge**:
+# 1. **Encoder-Wechsel** messen: bringt das größere mpnet ggü. MiniLM echten Vorsprung?
+# 2. **Kopf-Zyklus**: den Klassifikator *auf* den mpnet-Embeddings optimieren (F3).
 #
 # Latte: MiniLM (klein) = **90,83 %** · Track A getunt = 90,25 %.
 
@@ -42,13 +47,25 @@ test_texts, test_labels = load_banking77("test")
 print(f"train: {len(train_texts)}   test: {len(test_texts)}")
 
 # %% [markdown]
-# ## Encodieren + Kopf + messen
+# ## Schritt 1 — Encodieren
+#
+# Text → 768-dim Vektor (doppelt so breit wie MiniLMs 384), gecacht als `.npy`.
+# Beim ersten Lauf lädt + rechnet mpnet auf der Apple-GPU (MPS), danach kommt es
+# aus dem Cache.
 
 # %%
 X_train = encode(MODEL, train_texts, "mpnet", "train")
 X_test = encode(MODEL, test_texts, "mpnet", "test")
 print(f"X_train: {X_train.shape}  (768-dim statt MiniLMs 384)")
 
+# %% [markdown]
+# ## Schritt 2 — Plain-Kopf: bringt das größere Modell was?
+#
+# Erst der ehrliche Baseline-Griff für diesen Encoder: **derselbe LogReg wie bei
+# MiniLM**, nichts getunt. So misst der Vergleich nur den *Encoder-Wechsel* MiniLM →
+# mpnet — eine geänderte Variable.
+
+# %%
 clf = LogisticRegression(max_iter=1000)
 clf.fit(X_train, train_labels)
 p = clf.predict(X_test)
@@ -80,15 +97,21 @@ plot_per_class_f1(test_labels, p, worst=20)
 # %% [markdown]
 # # P3 — Kopf-Zyklus (auf den mpnet-Embeddings)
 #
-# Jetzt optimieren wir den **Kopf** auf dem besten Encoder. Derselbe ehrliche
-# Zyklus wie in Track A — nur läuft er auf *fertigen Embeddings* statt TF-IDF.
-# Genau dafür haben wir den generischen Kern `optimization.greedy_search`
-# rausgezogen: der Loop ist derselbe, nur die `evaluate`-Funktion ist anders.
+# Der Encoder ist gesetzt (mpnet, **eingefroren**). Jetzt optimieren wir das Einzige,
+# das noch beweglich ist: den **Kopf**. Derselbe ehrliche Zyklus wie in Track A —
+# nur läuft er auf *fertigen Embeddings* statt auf einer TF-IDF-Matrix. Genau dafür
+# haben wir den generischen Kern `optimization.greedy_search` rausgezogen: der Loop
+# ist identisch, nur die `evaluate`-Funktion ist anders.
+#
+# Wir drehen an **zwei** Dingen: erst den *Hyperparametern* des LogReg-Kopfs, dann
+# probieren wir *andere Kopf-Typen* durch.
 
 # %% [markdown]
 # ## Val-Split auf den Embeddings
-# Gleiche Aufteilung wie F2 (15 %, stratifiziert, Seed 42) — nur direkt auf der
-# Embedding-Matrix, mit denselben Parametern → dieselbe Partition.
+#
+# Gleiche Disziplin wie F2: optimiert wird auf einem **Validierungs**-Teil, nie am
+# Testset. Gleiche Aufteilung wie überall (15 %, stratifiziert, Seed 42) — nur
+# direkt auf der Embedding-Matrix. Gleiche Parameter → dieselbe Partition wie in A.
 
 # %%
 from sklearn.model_selection import train_test_split
@@ -101,8 +124,13 @@ X_tr, X_val, y_tr, y_val = train_test_split(
 print(f"Trainingsteil: {len(y_tr)}   Validierung: {len(y_val)}")
 
 # %% [markdown]
-# ## LogReg-C auf val greedy tunen
-# Auf dichten Embeddings liegt das C-Optimum oft anders als bei TF-IDF (dort C=10).
+# ## Runde 1 — LogReg-`C` auf val greedy tunen
+#
+# `C` steuert die Regularisierung (klein = einfacheres, stärker gezügeltes Modell).
+# Interessant: bei TF-IDF (Track A, spärliche Vektoren) lag das Optimum bei `C=10`.
+# Auf **dichten** Embeddings liegt es oft *anders* — die Merkmale sind hier wenige
+# hundert dichte Zahlen statt zehntausender spärlicher, also ein anderes Regime. Wir
+# raten nicht, wir messen den Dreier 0,3 / 3 / 10 / 30 plus Klassengewichte.
 
 # %%
 def evaluate(cfg):
@@ -128,9 +156,16 @@ print(f"Beste LogReg-Config: {best_clf or 'Default'}")
 plot_rounds(proto_df, "mpnet-Kopf (LogReg) — Optimierungsrunden")
 
 # %% [markdown]
-# ## Kopf-*Wechsel* — LogReg vs. kNN vs. LinearSVC (auf val)
-# Anderes Konzept: **kNN (Cosinus)** klassifiziert per Nachbarschaft — laut
-# CURRICULUM stark bei vielen Klassen × wenig Beispielen. Fairer Vergleich auf val.
+# ## Runde 2 — Kopf-*Wechsel*: LogReg vs. kNN vs. LinearSVC
+#
+# Bisher haben wir *einen* Kopf-Typ justiert. Jetzt stellen wir drei
+# grundverschiedene Köpfe gegeneinander — fair auf demselben val:
+# - **LogReg (getunt)**: die beste Config aus Runde 1, unsere Referenz.
+# - **kNN (Cosinus, k=15)**: klassifiziert nach **Nachbarschaft** — welche 15
+#   Trainingsvektoren liegen (im Cosinus-Sinn) am nächsten? Das Curriculum nennt kNN
+#   stark bei *vielen Klassen × wenig Beispielen* — genau unser Fall (77 × ~130).
+# - **LinearSVC**: linearer Klassifikator mit **maximalem Rand** zwischen den
+#   Klassen; auf dichten Embeddings kantet er LogReg oft knapp aus.
 
 # %%
 from sklearn.neighbors import KNeighborsClassifier
@@ -152,6 +187,9 @@ print(f"→ bester Kopf auf val: {best_head_name}")
 
 # %% [markdown]
 # ## Finale Messung — Testset, genau EINMAL
+#
+# Der Sieger-Kopf (auf val gewählt) wird auf dem **vollen** Trainingsset neu gefittet
+# und **einmal** auf test gemessen. Das ist die ehrliche Zahl, vergleichbar mit A/C.
 
 # %%
 final = heads[best_head_name]
@@ -164,3 +202,19 @@ print(f"mpnet + LogReg plain war: 92.23 %")
 
 save_result("B_mpnet_tuned", test_acc, macro_f1=round(test_f1, 4),
             model=f"mpnet + {best_head_name}", note="P3 Kopf-Zyklus (val-getunt), test 1x")
+
+# %% [markdown]
+# ## Deuten
+#
+# - Der Kopf-Zyklus hebt mpnet auf **94,12 %** — das ist **am BERT-Dach** (~93–94 %
+#   auf banking77), und das mit einem **eingefrorenen** Encoder plus getuntem Kopf.
+#   Gen 2 schlägt hier Gen 1 klar, und setzt die Latte, an der Track C sich messen muss.
+# - Beachte, *woher* der Gewinn kam: der **Kopf-Wechsel** (LinearSVC) brachte mehr als
+#   das C-Feintuning. Wie in Track A gilt: die größten Sprünge kommen selten aus dem
+#   letzten Hyperparameter, sondern aus einer strukturell besseren Wahl.
+# - Alles hier lag **über** dem eingefrorenen Encoder — der Encoder selbst blieb fix.
+#   Das ist die Grenze von Track B; ihn *aufzutauen* ist Track C.
+#
+# **✓ Checkpoint:** Warum fitten wir den Sieger-Kopf für die finale Messung noch
+# einmal auf `X_train` (dem *vollen* Trainingsset), obwohl wir ihn beim Tunen nur auf
+# `X_tr` (dem Trainingsteil) trainiert hatten?
