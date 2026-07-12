@@ -413,6 +413,21 @@ plot_top_confusions(test_labels, pred_names, top=15)
 plot_per_class_f1(test_labels, pred_names, worst=20)
 
 # %% [markdown]
+# ## Modell sichern (Persistenz)
+#
+# Der finegetunte RoBERTa (93,89 %) lebt bis hier nur im Kernel-RAM — ein Neustart
+# und er ist weg. Wir schreiben ihn ins gitignorete `modelle/`, damit andere
+# Notebooks (der Kopf-Zyklus in `hybrid/`, später das Dashboard) ihn laden können,
+# **ohne neu zu finetunen**. `save_pretrained` legt Gewichte + Config + Tokenizer im
+# HF-Standardformat ab; zurückgeladen wird mit `from_pretrained(MODELL_DIR)`.
+
+# %%
+MODELL_DIR = root / "modelle" / "roberta_ft"
+t_final.model.save_pretrained(MODELL_DIR)
+tokenizer.save_pretrained(MODELL_DIR)
+print(f"gespeichert nach {MODELL_DIR}  (laden: from_pretrained(MODELL_DIR))")
+
+# %% [markdown]
 # ## Deuten & nächster Schritt
 #
 # - **Über B (94,12 %)?** Dann hat Gen 3 hier zum ersten Mal Gen 2 geschlagen — der
@@ -423,150 +438,7 @@ plot_per_class_f1(test_labels, pred_names, worst=20)
 #   Dreier zeigt schwarz auf weiß, warum das Curriculum sie „die empfindlichste
 #   Schraube" nennt — dieselbe Architektur, nur eine andere Zahl.
 #
-# **Nächster Schritt — LoRA:** statt aller 125 Mio Gewichte nur ein paar kleine
-# Adapter-Matrizen trainieren (Sparmodus). Frage: wie nah kommt LoRA mit einem
-# Bruchteil der trainierten Parameter an dieses volle Finetuning? Das hängen wir als
-# eigenen Abschnitt dran, sobald diese Zahl steht.
-
-# %% [markdown]
-# # P3 · Zusatz — LoRA (parameter-effizientes Finetuning)
-#
-# ## Was ist LoRA?
-#
-# Volles Finetuning hat eben **alle 125 Mio Gewichte** angepasst — teuer: Gradienten
-# und Optimizer-Zustände für *jedes* Gewicht im Speicher, Minuten Rechenzeit, und pro
-# Aufgabe ein kompletter 500-MB-Modell-Klon.
-#
-# **LoRA (Low-Rank Adaptation)** dreht das um:
-# - Die vortrainierten Gewichte werden **eingefroren** — kein einziges wird angefasst.
-# - In ausgewählte Schichten (hier die **Attention**-Projektionen `query` & `value`)
-#   werden **zwei kleine Matrizen** `A` (d×r) und `B` (r×d) mit winzigem **Rang** `r`
-#   (z.B. 8) eingeschoben. Die Schicht rechnet dann `W + B·A` — das eingefrorene `W`
-#   plus einen **niedrig-rangigen Zusatz**. Nur `A` und `B` werden trainiert.
-# - **Intuition:** die *Anpassung*, die eine Aufgabe braucht, ist viel
-#   niederdimensionaler als die volle Gewichtsmatrix — eine dünne Korrektur, kein
-#   Neuschreiben. Rang 8 fängt den Großteil davon ein.
-#
-# **Der Gewinn:** nur ~**1 %** der Parameter trainieren → weniger Speicher, schneller,
-# und der Adapter ist ein paar MB statt 500 — man hält *eine* eingefrorene Basis und
-# tauscht kleine Adapter je Aufgabe. Der Klassifikations-Kopf bleibt voll trainierbar
-# (`modules_to_save`), er ist ja frisch und muss von Grund auf lernen.
-#
-# **Die Frage:** Wie nah kommt dieser Sparmodus an die 93,89 % des vollen Finetunings?
-
-# %% [markdown]
-# ## Schritt 1 — LoRA-Adapter auf die Basis setzen
-#
-# `LoraConfig` beschreibt das Rezept, `get_peft_model` friert die Basis ein und hängt
-# die Adapter dran. `print_trainable_parameters` zeigt schwarz auf weiß, wie klein der
-# trainierte Anteil ist. `lora_alpha` skaliert den Zusatz (Faktor `alpha/r`).
-
-# %%
-from peft import LoraConfig, TaskType, get_peft_model
-
-lora_config = LoraConfig(
-    task_type=TaskType.SEQ_CLS,
-    r=8,
-    lora_alpha=16,
-    target_modules=["query", "value"],  # RoBERTas Attention-Projektionen
-    lora_dropout=0.1,
-    modules_to_save=["classifier"],  # der Kopf bleibt voll trainierbar
-)
-
-
-def build_lora_model():
-    base = AutoModelForSequenceClassification.from_pretrained(
-        MODEL_NAME, num_labels=NUM_LABELS, id2label=id2label, label2id=label2id
-    )
-    return get_peft_model(base, lora_config)
-
-
-lora_model = build_lora_model()
-lora_model.print_trainable_parameters()
-
-# %% [markdown]
-# ## Schritt 2 — LoRA trainieren (auf val Epochen finden)
-#
-# Gleiche Trainer-Mechanik wie im LR-Dreier. Zwei Unterschiede: LoRA mag eine
-# **höhere Learning Rate** (nur kleine Matrizen zu bewegen — hier 3e-4 statt 3e-5),
-# und es braucht oft **mehr Epochen** (der Umweg über die Low-Rank-Adapter lernt
-# langsamer). Early Stopping auf val findet den richtigen Punkt.
-
-# %%
-LORA_LR = 3e-4
-
-
-def train_lora(model, train_dataset, epochs, eval_dataset, out):
-    args = TrainingArguments(
-        output_dir=str(root / f"04_track_c_finetuning/runs/{out}"),
-        num_train_epochs=epochs,
-        per_device_train_batch_size=32,
-        learning_rate=LORA_LR,
-        warmup_steps=100,
-        eval_strategy="epoch" if eval_dataset is not None else "no",
-        save_strategy="epoch" if eval_dataset is not None else "no",
-        save_total_limit=1,
-        load_best_model_at_end=eval_dataset is not None,
-        metric_for_best_model="macro_f1",
-        greater_is_better=True,
-        logging_steps=50,
-        report_to="none",
-        dataloader_pin_memory=False,
-    )
-    cb = [EarlyStoppingCallback(early_stopping_patience=2)] if eval_dataset is not None else None
-    t = Trainer(
-        model=model, args=args, train_dataset=train_dataset, eval_dataset=eval_dataset,
-        data_collator=collator, processing_class=tokenizer,
-        compute_metrics=compute_metrics, callbacks=cb,
-    )
-    t.train()
-    return t
-
-
-t_search = train_lora(lora_model, tr_ds, epochs=8, eval_dataset=va_ds, out="lora_search")
-evals = [(h["epoch"], h["eval_macro_f1"]) for h in t_search.state.log_history if "eval_macro_f1" in h]
-lora_best_epoch, lora_best_f1 = max(evals, key=lambda e: e[1])
-print(f"\nLoRA beste val Macro-F1 {lora_best_f1*100:.2f} %  @ Epoche {lora_best_epoch:.0f}")
-
-# %% [markdown]
-# ## Schritt 3 — Refit auf vollem Train, Testset genau EINMAL
-
-# %%
-lora_epochs = max(1, math.ceil(lora_best_epoch))
-print(f"LoRA-Refit: {lora_epochs} Epochen, volles Train.")
-
-lora_final = build_lora_model()
-t_lora_final = train_lora(lora_final, train_ds, epochs=lora_epochs, eval_dataset=None, out="lora_final")
-
-pred = t_lora_final.predict(test_ds)
-preds = np.argmax(pred.predictions, axis=-1)
-acc = accuracy_score(y_test, preds)
-macro_f1 = f1_score(y_test, preds, average="macro")
-print(f"\nRoBERTa + LoRA   Accuracy: {acc*100:.2f} %   Macro-F1: {macro_f1*100:.2f} %")
-print(f"Vergleich:  volles Finetuning 93,89 %  ·  B mpnet 94,12 %")
-
-save_result(
-    "C_lora_roberta",
-    acc,
-    macro_f1=round(macro_f1, 4),
-    model="RoBERTa-base (LoRA)",
-    config=f"r=8, alpha=16, lr={LORA_LR:.0e}, epochs={lora_epochs}",
-    note="P3 LoRA-Sparmodus, test 1x",
-)
-
-# %% [markdown]
-# ## Deuten — was Sparmodus kostet (oder eben nicht)
-#
-# Stell die drei Zahlen nebeneinander: **volles Finetuning (93,89 %)** vs. **LoRA**
-# vs. der **trainierte Parameter-Anteil** aus Schritt 1. Die Lehre steckt im
-# Verhältnis:
-# - Kommt LoRA mit ~1 % der trainierten Gewichte auf ~99 % der Accuracy, ist das der
-#   ganze Punkt — **fast gratis** in Speicher/Zeit/Artefaktgröße, praktisch kein
-#   Qualitätsverlust. Genau darum ist LoRA bei knapper GPU der Standard.
-# - Ein spürbarer Abstand hieße: für *diese* Aufgabe braucht es doch mehr Kapazität —
-#   dann wäre er mit höherem Rang `r` oder mehr Ziel-Schichten (auch `key`, die
-#   Feed-Forward-Layer) zu verkleinern.
-#
-# **✓ Checkpoint:** Du betreibst 10 verschiedene Intent-Klassifikatoren. Warum ist
-# LoRA hier dem vollen Finetuning betrieblich haushoch überlegen — selbst wenn die
-# Accuracy identisch wäre?
+# **Nächster Schritt — LoRA:** derselbe RoBERTa, aber *parameter-effizient*
+# finetunen (nur ~1 % der Gewichte). Eigenes Konzept → eigene Datei:
+# **`peft/roberta_lora.py`**. Der Vergleich full vs. LoRA läuft übers
+# Scoreboard/Dashboard, nicht in diesem Notebook.

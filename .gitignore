@@ -8,6 +8,8 @@ __pycache__/
 *.npy
 # trainierte sklearn-Modelle
 *.joblib
+# persistierte Champion-Modelle (regenerierbar via Notebooks)
+modelle/
 # Track-C-Trainingsläufe (Checkpoints/Logs, regenerierbar) — an beliebiger Ebene
 runs*/
 # versehentlich verschachteltes Verzeichnis (relativer output_dir aus falschem cwd)
