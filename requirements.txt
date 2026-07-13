@@ -3,6 +3,7 @@ pandas>=2.0
 matplotlib>=3.7
 sentence-transformers>=2.7
 anthropic>=0.34
+openai>=1.40         # Track D: lokales LLM per OpenAI-kompatibler API (oMLX/Ollama/LM Studio/vLLM)
 # Optional, je Etappe (bei Bedarf einkommentieren):
 # fasttext-wheel     # E3
 # torch, transformers, datasets, accelerate  # E4/E6 (Track C)
