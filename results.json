@@ -16,17 +16,13 @@
     "score_type": "proba"
   },
   "C_tuned_roberta": {
-    "accuracy": 0.9389,
-    "macro_f1": 0.9386,
+    "accuracy": 0.9382,
+    "macro_f1": 0.9379,
+    "weighted_f1": 0.9379,
     "model": "RoBERTa-base (finetuned, LR-getunt)",
-    "config": "lr=3e-05, epochs=6, warmup=0.06",
-    "note": "P3 LR auf val gewählt, refit full train, test 1x"
-  },
-  "C_plain_roberta": {
-    "accuracy": 0.9317,
-    "macro_f1": 0.9317,
-    "model": "RoBERTa-base (finetuned)",
-    "note": "P2 plain, Standardwerte, test 1x"
+    "note": "P3 LR auf val gewählt, refit full train, test 1x",
+    "config": "lr=3e-05, epochs=6, warmup=100steps",
+    "score_type": "proba"
   },
   "C_lora_roberta": {
     "accuracy": 0.9275,
@@ -35,12 +31,11 @@
     "config": "r=8, alpha=16, lr=3e-04, epochs=6",
     "note": "C peft/LoRA-Sparmodus, test 1x"
   },
-  "C_tuned_mpnet_ft": {
-    "accuracy": 0.9239,
-    "macro_f1": 0.9231,
-    "model": "mpnet (finetuned, LR-getunt)",
-    "config": "lr=3e-05, epochs=6, warmup=100steps",
-    "note": "P3 LR auf val gewählt, refit full train, test 1x"
+  "C_plain_roberta": {
+    "accuracy": 0.9236,
+    "macro_f1": 0.9235,
+    "model": "RoBERTa-base (finetuned)",
+    "note": "P2 plain, Standardwerte, test 1x"
   },
   "B_mpnet_logreg": {
     "accuracy": 0.9223,
@@ -50,6 +45,23 @@
     "note": "P2 plain-Kopf, staerkerer Encoder, frozen",
     "score_type": "proba"
   },
+  "C_tuned_mpnet_ft": {
+    "accuracy": 0.922,
+    "macro_f1": 0.9181,
+    "weighted_f1": 0.9181,
+    "model": "mpnet (finetuned, LR-getunt)",
+    "note": "P3 LR auf val gewählt, refit full train, test 1x",
+    "config": "lr=3e-05, epochs=6, warmup=100steps",
+    "score_type": "proba"
+  },
+  "C_plain_mpnet_ft": {
+    "accuracy": 0.9086,
+    "macro_f1": 0.9036,
+    "weighted_f1": 0.9037,
+    "model": "mpnet (finetuned)",
+    "note": "P2 plain, Standardwerte, test 1x",
+    "score_type": "proba"
+  },
   "B_minilm_logreg": {
     "accuracy": 0.9083,
     "macro_f1": 0.9082,
@@ -57,12 +69,6 @@
     "model": "MiniLM + LogReg",
     "note": "P2 plain, frozen embeddings",
     "score_type": "proba"
-  },
-  "C_plain_mpnet_ft": {
-    "accuracy": 0.907,
-    "macro_f1": 0.8977,
-    "model": "mpnet (finetuned)",
-    "note": "P2 plain, Standardwerte, test 1x"
   },
   "A_tuned_tfidf_logreg": {
     "accuracy": 0.9025,
@@ -142,5 +148,12 @@
     "macro_f1": 0.6886,
     "model": "TF-IDF + ComplementNB",
     "note": "P2 plain"
+  },
+  "D_llama1b_zeroshot_p2": {
+    "accuracy": 0.1234,
+    "macro_f1": 0.1043,
+    "model": "Llama-3.2-1B-Instruct-4bit (lokal, oMLX)",
+    "note": "P2 naiv zero-shot, val-Subsample 2x77, unknown=26",
+    "score_type": "none"
   }
 }
