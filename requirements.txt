@@ -12,6 +12,7 @@ accelerate>=0.30
 peft>=0.11          # LoRA (parameter-effizientes Finetuning, C·P3)
 gradio>=5           # Dashboard (06_synthese/dashboard.py)
 plotly>=5           # 3D-Embedding-Explorer im Dashboard
+openai>=1.40         # Track D: lokales LLM per OpenAI-kompatibler API (oMLX/Ollama/LM Studio/vLLM)
 # Optional, je Etappe (bei Bedarf einkommentieren):
 # fasttext-wheel     # E3
 # setfit             # B·P3
