@@ -27,3 +27,11 @@ data/support/*/
 # macOS / Editor
 .DS_Store
 .zed/
+
+# Isolierte MLX-venv für mlx-lm (regenerierbar via requirements; ~400M)
+.venv-mlx/
+# QLoRA-Adapter & gefuste Modelle je Trainingslauf (Gewichte, regenerierbar)
+05_track_d_llm/lokal/ft_adapters*/
+05_track_d_llm/lokal/fused*/
+# generierte SFT-Trainingsdaten (train/valid.jsonl, regenerierbar aus banking77)
+05_track_d_llm/lokal/ft_data/

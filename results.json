@@ -130,6 +130,25 @@
     "config": "vec={'min_df': 2, 'sublinear_tf': True}, clf={'alpha': 0.1, 'fit_prior': False}",
     "note": "P3 getunt, test 1x"
   },
+  "D_llama1b_ft_600it": {
+    "accuracy": 0.8443,
+    "macro_f1": 0.8324,
+    "weighted_f1": 0.8433,
+    "model": "Llama-3.2-1B QLoRA-SFT (lokal, oMLX)",
+    "note": "generatives SFT (mask-prompt), LoRA r-default/8 Layer/600 iters, test 1x"
+  },
+  "D_llama1b_ft_3ep": {
+    "accuracy": 0.843,
+    "macro_f1": 0.8397,
+    "weighted_f1": 0.8506,
+    "model": "Llama-3.2-1B LORA-SFT (lokal, oMLX)",
+    "note": "generatives SFT (mask-prompt), lora, 8 Layer, 2500 iters (~2.4 Ep.), test 1x",
+    "fine_tune_type": "lora",
+    "iters": 2500,
+    "epochs": 2.4,
+    "num_layers": 8,
+    "lr": 0.0001
+  },
   "A_tuned_tfidf_complementnb": {
     "accuracy": 0.7988,
     "macro_f1": 0.7931,
